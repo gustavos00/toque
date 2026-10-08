@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quadro do Toque</title>
+<style>
+  :root {
+    --bg: #f6f6f3;
+    --surface: #ffffff;
+    --surface-2: #f0efea;
+    --border: #e3e1da;
+    --text: #1c1b18;
+    --muted: #6d6a62;
+    --accent: #3b5bdb;
+    --todo: #8a877e;
+    --doing: #3b5bdb;
+    --blocked: #c2410c;
+    --done: #15803d;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141413;
+      --surface: #1d1d1b;
+      --surface-2: #262623;
+      --border: #33322e;
+      --text: #ecebe6;
+      --muted: #9b988f;
+      --accent: #7c9bff;
+      --todo: #9b988f;
+      --doing: #7c9bff;
+      --blocked: #f97316;
+      --done: #4ade80;
+      --shadow: none;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  header {
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    padding: 20px 24px 12px;
+  }
+  h1 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+  h2 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+  .sub { color: var(--muted); }
+  .live { margin-left: auto; color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--done); }
+  .live.off .dot { background: var(--blocked); }
+
+  .layout {
+    display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px;
+    padding: 0 24px 24px;
+  }
+  @media (max-width: 1050px) { .layout { grid-template-columns: 1fr; } }
+
+  .needs-you {
+    border: 1px solid var(--blocked); background: color-mix(in srgb, var(--blocked) 8%, var(--surface));
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
+  }
+  .needs-you strong { color: var(--blocked); }
+  .needs-you ul { margin: 6px 0 0; padding-left: 18px; }
+
+  .agents { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .agent {
+    text-align: left; font: inherit; color: inherit; cursor: pointer;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px; box-shadow: var(--shadow); border-top: 3px solid var(--agent-color);
+  }
+  .agent:hover { border-color: var(--agent-color); }
+  .agent.selected { outline: 2px solid var(--agent-color); outline-offset: 1px; }
+  .agent .top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .agent .name { font-weight: 600; }
+  .agent .role { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .agent .now { margin-top: 8px; font-size: 13px; min-height: 2.9em; }
+  .agent .meta { margin-top: 8px; display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+  .bar { height: 4px; border-radius: 2px; background: var(--surface-2); margin-top: 8px; overflow: hidden; }
+  .bar > span { display: block; height: 100%; background: var(--agent-color); }
+
+  .pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .pill.todo { color: var(--todo); background: color-mix(in srgb, var(--todo) 14%, transparent); }
+  .pill.doing { color: var(--doing); background: color-mix(in srgb, var(--doing) 14%, transparent); }
+  .pill.blocked { color: var(--blocked); background: color-mix(in srgb, var(--blocked) 14%, transparent); }
+  .pill.done { color: var(--done); background: color-mix(in srgb, var(--done) 14%, transparent); }
+
+  .kanban { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 760px) { .kanban { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 480px) { .kanban { grid-template-columns: 1fr; } }
+  .column { background: var(--surface-2); border-radius: 10px; padding: 10px; min-height: 140px; }
+  .column h2 { display: flex; justify-content: space-between; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--agent-color);
+    border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; box-shadow: var(--shadow);
+  }
+  .card .who { color: var(--muted); font-size: 11px; margin-top: 4px; }
+
+  aside { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; align-self: start; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+  .entry { padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .entry:last-child { border-bottom: 0; }
+  .entry .head { display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--muted); }
+  .entry .swatch { width: 8px; height: 8px; border-radius: 2px; background: var(--agent-color); }
+  .entry .kind { font-weight: 600; }
+  .entry .kind.decision { color: var(--accent); }
+  .entry .kind.question { color: var(--blocked); }
+  .entry .kind.test { color: var(--done); }
+  .entry .text { margin-top: 2px; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+  .empty { color: var(--muted); padding: 24px; text-align: center; border: 1px dashed var(--border); border-radius: 10px; }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .filters button {
+    font: inherit; font-size: 12px; color: var(--muted); background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; cursor: pointer;
+  }
+  .filters button.on { color: var(--text); border-color: var(--text); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Toque</h1>
+  <span class="sub" id="summary">A carregar…</span>
+  <span class="live" id="live"><span class="dot"></span><span id="live-text">ao vivo</span></span>
+</header>
+
+<div class="layout">
+  <main>
+    <div id="needs-you"></div>
+    <h2>Agentes <span class="sub" id="filter-hint"></span></h2>
+    <div class="agents" id="agents"></div>
+    <div class="kanban" id="kanban"></div>
+  </main>
+  <aside>
+    <h2>Atividade</h2>
+    <div class="filters" id="kind-filters"></div>
+    <div id="feed"></div>
+  </aside>
+</div>
+
+<script>
+  const STATUS_COLUMNS = [
+    ["todo", "Por fazer"],
+    ["doing", "Em curso"],
+    ["blocked", "Bloqueado"],
+    ["done", "Feito"],
+  ];
+  const STATUS_LABELS = Object.fromEntries(STATUS_COLUMNS);
+  const KIND_LABELS = { step: "Passo", decision: "Decisão", file: "Ficheiro", test: "Teste", question: "Pergunta" };
+  const AGENT_COLORS = ["#3b82f6", "#e0820f", "#16a34a", "#c026d3", "#0891b2", "#dc2626"];
+  const POLL_MS = 2000;
+
+  let selectedAgentId = null;
+  const hiddenKinds = new Set();
+  let lastBoard = { agents: [] };
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  }
+
+  function formatAgo(iso) {
+    if (!iso) return "—";
+    const seconds = Math.max(0, Math.round((Date.now() - new Date(iso)) / 1000));
+    if (seconds < 60) return `há ${seconds} s`;
+    if (seconds < 3600) return `há ${Math.round(seconds / 60)} min`;
+    return `há ${Math.round(seconds / 3600)} h`;
+  }
+
+  function formatTime(iso) {
+    return new Date(iso).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+
+  function getAgentColor(agents, id) {
+    return AGENT_COLORS[agents.findIndex((a) => a.id === id) % AGENT_COLORS.length];
+  }
+
+  function getVisibleAgents(agents) {
+    return selectedAgentId ? agents.filter((a) => a.id === selectedAgentId) : agents;
+  }
+
+  function renderSummary(agents) {
+    const tasks = agents.flatMap((a) => a.tasks ?? []);
+    const done = tasks.filter((t) => t.status === "done").length;
+    const working = agents.filter((a) => a.status === "doing").length;
+    document.getElementById("summary").textContent = agents.length
+      ? `${agents.length} agentes · ${working} a trabalhar · ${done}/${tasks.length} tarefas feitas`
+      : "Ainda sem agentes";
+  }
+
+  function renderNeedsYou(agents) {
+    const blocked = agents.filter((a) => a.status === "blocked");
+    const el = document.getElementById("needs-you");
+    if (!blocked.length) { el.innerHTML = ""; return; }
+    el.innerHTML = `<div class="needs-you"><strong>Precisa de atenção</strong><ul>${blocked.map((a) => {
+      const question = [...(a.log ?? [])].reverse().find((e) => e.kind === "question");
+      return `<li><b>${escapeHtml(a.name)}</b>: ${escapeHtml(question?.text ?? a.currentStep ?? "bloqueado")}</li>`;
+    }).join("")}</ul></div>`;
+  }
+
+  function renderAgents(agents) {
+    const el = document.getElementById("agents");
+    document.getElementById("filter-hint").textContent = selectedAgentId ? "· a filtrar (clica outra vez para ver todos)" : "";
+    if (!agents.length) {
+      el.innerHTML = `<div class="empty">Ainda não há agentes. Assim que arrancarem, aparecem aqui.</div>`;
+      return;
+    }
+    el.innerHTML = agents.map((a) => {
+      const tasks = a.tasks ?? [];
+      const done = tasks.filter((t) => t.status === "done").length;
+      const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+      return `<button class="agent ${a.id === selectedAgentId ? "selected" : ""}" data-id="${escapeHtml(a.id)}" style="--agent-color:${getAgentColor(agents, a.id)}">
+        <div class="top"><span class="name">${escapeHtml(a.name)}</span><span class="pill ${escapeHtml(a.status)}">${STATUS_LABELS[a.status] ?? escapeHtml(a.status)}</span></div>
+        <div class="role">${escapeHtml(a.role)}</div>
+        <div class="now">${escapeHtml(a.currentStep || (a.status === "done" ? "Terminou." : "—"))}</div>
+        <div class="bar"><span style="width:${pct}%"></span></div>
+        <div class="meta"><span>${done}/${tasks.length} tarefas</span><span>${formatAgo(a.updatedAt)}</span></div>
+      </button>`;
+    }).join("");
+  }
+
+  function renderKanban(agents) {
+    const visible = getVisibleAgents(agents);
+    const cards = visible.flatMap((a) => (a.tasks ?? []).map((t) => ({ ...t, agent: a })));
+    document.getElementById("kanban").innerHTML = STATUS_COLUMNS.map(([status, label]) => {
+      const inColumn = cards.filter((c) => c.status === status);
+      return `<section class="column"><h2><span>${label}</span><span>${inColumn.length}</span></h2>${inColumn.map((c) =>
+        `<div class="card" style="--agent-color:${getAgentColor(agents, c.agent.id)}">${escapeHtml(c.title)}<div class="who">${escapeHtml(c.agent.name)}</div></div>`
+      ).join("")}</section>`;
+    }).join("");
+  }
+
+  function renderKindFilters() {
+    document.getElementById("kind-filters").innerHTML = Object.entries(KIND_LABELS).map(([kind, label]) =>
+      `<button data-kind="${kind}" class="${hiddenKinds.has(kind) ? "" : "on"}">${label}</button>`
+    ).join("");
+  }
+
+  function renderFeed(agents) {
+    const entries = getVisibleAgents(agents)
+      .flatMap((a) => (a.log ?? []).map((e) => ({ ...e, agent: a })))
+      .filter((e) => !hiddenKinds.has(e.kind))
+      .sort((x, y) => y.at.localeCompare(x.at))
+      .slice(0, 150);
+    document.getElementById("feed").innerHTML = entries.length
+      ? entries.map((e) => `<div class="entry" style="--agent-color:${getAgentColor(agents, e.agent.id)}">
+          <div class="head"><span class="swatch"></span><span>${escapeHtml(e.agent.name)}</span>·<span class="kind ${escapeHtml(e.kind)}">${KIND_LABELS[e.kind] ?? escapeHtml(e.kind)}</span><span style="margin-left:auto">${formatTime(e.at)}</span></div>
+          <div class="text">${escapeHtml(e.text)}</div>
+        </div>`).join("")
+      : `<div class="sub">Sem atividade.</div>`;
+  }
+
+  function renderAll() {
+    const agents = lastBoard.agents;
+    renderSummary(agents);
+    renderNeedsYou(agents);
+    renderAgents(agents);
+    renderKanban(agents);
+    renderKindFilters();
+    renderFeed(agents);
+  }
+
+  async function refreshBoard() {
+    const live = document.getElementById("live");
+    try {
+      const res = await fetch("/api/board", { cache: "no-store" });
+      lastBoard = await res.json();
+      live.classList.remove("off");
+      document.getElementById("live-text").textContent = "ao vivo";
+      renderAll();
+    } catch {
+      live.classList.add("off");
+      document.getElementById("live-text").textContent = "servidor parado";
+    }
+  }
+
+  document.getElementById("agents").addEventListener("click", (event) => {
+    const card = event.target.closest(".agent");
+    if (!card) return;
+    selectedAgentId = selectedAgentId === card.dataset.id ? null : card.dataset.id;
+    renderAll();
+  });
+
+  document.getElementById("kind-filters").addEventListener("click", (event) => {
+    const kind = event.target.closest("button")?.dataset.kind;
+    if (!kind) return;
+    hiddenKinds.has(kind) ? hiddenKinds.delete(kind) : hiddenKinds.add(kind);
+    renderAll();
+  });
+
+  refreshBoard();
+  setInterval(refreshBoard, POLL_MS);
+</script>
+</body>
+</html>
