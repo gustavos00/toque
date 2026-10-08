@@ -81,6 +81,12 @@
   .agent .role { color: var(--muted); font-size: 12px; margin-top: 2px; }
   .agent .now { margin-top: 8px; font-size: 13px; min-height: 2.9em; }
   .agent .meta { margin-top: 8px; display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+  .agent .last-file { margin-top: 6px; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+  .agent .meta span, .entry .head span { font-variant-numeric: tabular-nums; }
+  .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--border); vertical-align: 1px; }
+  .pulse.on { background: var(--done); box-shadow: 0 0 0 0 color-mix(in srgb, var(--done) 60%, transparent); animation: pulse 1.4s infinite; }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 6px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+  .entry .kind.edit { color: var(--muted); }
   .bar { height: 4px; border-radius: 2px; background: var(--surface-2); margin-top: 8px; overflow: hidden; }
   .bar > span { display: block; height: 100%; background: var(--agent-color); }
 
@@ -150,9 +156,10 @@
     ["done", "Feito"],
   ];
   const STATUS_LABELS = Object.fromEntries(STATUS_COLUMNS);
-  const KIND_LABELS = { step: "Passo", decision: "Decisão", file: "Ficheiro", test: "Teste", question: "Pergunta" };
+  const KIND_LABELS = { step: "Passo", decision: "Decisão", edit: "Gravou", file: "Ficheiro", test: "Teste", question: "Pergunta" };
   const AGENT_COLORS = ["#3b82f6", "#e0820f", "#16a34a", "#c026d3", "#0891b2", "#dc2626"];
-  const POLL_MS = 2000;
+  const ACTIVE_WINDOW_MS = 60000;
+  const CLOCK_MS = 100;
 
   let selectedAgentId = null;
   const hiddenKinds = new Set();
@@ -164,14 +171,40 @@
 
   function formatAgo(iso) {
     if (!iso) return "—";
-    const seconds = Math.max(0, Math.round((Date.now() - new Date(iso)) / 1000));
-    if (seconds < 60) return `há ${seconds} s`;
-    if (seconds < 3600) return `há ${Math.round(seconds / 60)} min`;
-    return `há ${Math.round(seconds / 3600)} h`;
+    const ms = Math.max(0, Date.now() - new Date(iso));
+    if (ms < 60000) return `há ${(ms / 1000).toLocaleString("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} s`;
+    if (ms < 3600000) return `há ${Math.floor(ms / 60000)} min ${Math.floor((ms % 60000) / 1000)} s`;
+    return `há ${Math.floor(ms / 3600000)} h ${Math.floor((ms % 3600000) / 60000)} min`;
   }
 
   function formatTime(iso) {
-    return new Date(iso).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    return new Date(iso).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit", second: "2-digit", fractionalSecondDigits: 3 });
+  }
+
+  function getFileName(path) {
+    return path.split("/").pop();
+  }
+
+  function getLastFileEvent(agentId) {
+    return [...(lastBoard.fileEvents ?? [])].reverse().find((e) => e.agentId === agentId);
+  }
+
+  function getLastActivityAt(agent) {
+    const fileAt = getLastFileEvent(agent.id)?.at;
+    return [agent.updatedAt, fileAt].filter(Boolean).sort().pop();
+  }
+
+  function isActiveNow(agent) {
+    const at = getLastActivityAt(agent);
+    return Boolean(at) && Date.now() - new Date(at) < ACTIVE_WINDOW_MS;
+  }
+
+  function updateClocks() {
+    for (const el of document.querySelectorAll("[data-ago]")) el.textContent = formatAgo(el.dataset.ago);
+    for (const el of document.querySelectorAll("[data-active-agent]")) {
+      const agent = lastBoard.agents.find((a) => a.id === el.dataset.activeAgent);
+      el.classList.toggle("on", Boolean(agent) && isActiveNow(agent));
+    }
   }
 
   function getAgentColor(agents, id) {
@@ -212,12 +245,15 @@
       const tasks = a.tasks ?? [];
       const done = tasks.filter((t) => t.status === "done").length;
       const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+      const lastFile = getLastFileEvent(a.id);
+      const lastActivityAt = getLastActivityAt(a);
       return `<button class="agent ${a.id === selectedAgentId ? "selected" : ""}" data-id="${escapeHtml(a.id)}" style="--agent-color:${getAgentColor(agents, a.id)}">
-        <div class="top"><span class="name">${escapeHtml(a.name)}</span><span class="pill ${escapeHtml(a.status)}">${STATUS_LABELS[a.status] ?? escapeHtml(a.status)}</span></div>
+        <div class="top"><span class="name"><span class="pulse" data-active-agent="${escapeHtml(a.id)}"></span>${escapeHtml(a.name)}</span><span class="pill ${escapeHtml(a.status)}">${STATUS_LABELS[a.status] ?? escapeHtml(a.status)}</span></div>
         <div class="role">${escapeHtml(a.role)}</div>
         <div class="now">${escapeHtml(a.currentStep || (a.status === "done" ? "Terminou." : "—"))}</div>
+        ${lastFile ? `<div class="last-file" title="${escapeHtml(lastFile.path)}">✎ ${escapeHtml(getFileName(lastFile.path))} · <span data-ago="${lastFile.at}">${formatAgo(lastFile.at)}</span></div>` : ""}
         <div class="bar"><span style="width:${pct}%"></span></div>
-        <div class="meta"><span>${done}/${tasks.length} tarefas</span><span>${formatAgo(a.updatedAt)}</span></div>
+        <div class="meta"><span>${done}/${tasks.length} tarefas</span><span data-ago="${lastActivityAt ?? ""}">${formatAgo(lastActivityAt)}</span></div>
       </button>`;
     }).join("");
   }
@@ -240,8 +276,14 @@
   }
 
   function renderFeed(agents) {
-    const entries = getVisibleAgents(agents)
+    const visible = getVisibleAgents(agents);
+    const fileEntries = (lastBoard.fileEvents ?? []).flatMap((e) => {
+      const agent = visible.find((a) => a.id === e.agentId);
+      return agent ? [{ at: e.at, kind: "edit", text: e.path, agent }] : [];
+    });
+    const entries = visible
       .flatMap((a) => (a.log ?? []).map((e) => ({ ...e, agent: a })))
+      .concat(fileEntries)
       .filter((e) => !hiddenKinds.has(e.kind))
       .sort((x, y) => y.at.localeCompare(x.at))
       .slice(0, 150);
@@ -263,18 +305,24 @@
     renderFeed(agents);
   }
 
-  async function refreshBoard() {
+  function connectStream() {
     const live = document.getElementById("live");
-    try {
-      const res = await fetch("/api/board", { cache: "no-store" });
-      lastBoard = await res.json();
+    const liveText = document.getElementById("live-text");
+    const stream = new EventSource("/api/stream");
+    stream.onopen = () => {
       live.classList.remove("off");
-      document.getElementById("live-text").textContent = "ao vivo";
+      liveText.textContent = "ao vivo";
+    };
+    stream.onmessage = (event) => {
+      lastBoard = JSON.parse(event.data);
       renderAll();
-    } catch {
+      updateClocks();
+    };
+    // EventSource reconnects by itself; just show the state meanwhile.
+    stream.onerror = () => {
       live.classList.add("off");
-      document.getElementById("live-text").textContent = "servidor parado";
-    }
+      liveText.textContent = "a religar…";
+    };
   }
 
   document.getElementById("agents").addEventListener("click", (event) => {
@@ -291,8 +339,8 @@
     renderAll();
   });
 
-  refreshBoard();
-  setInterval(refreshBoard, POLL_MS);
+  connectStream();
+  setInterval(updateClocks, CLOCK_MS);
 </script>
 </body>
 </html>

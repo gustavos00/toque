@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Toque
 
-## Getting Started
+Tarefas de casa ativadas por tags NFC. Uma PWA pessoal (um utilizador, iPhone, português, hora de Lisboa): encosta o telemóvel à tag, o Toque regista e trata dos lembretes por notificação ([ntfy](docs/ntfy.md)).
 
-First, run the development server:
+Cada tag guarda um endereço `https://<domínio>/t/<token>`. Abri-lo regista o toque — não precisa de sessão, o token é a credencial. O resto da app está protegido por uma palavra-passe única.
+
+## Tipos de tarefa
+
+| Tipo | Exemplo | Como funciona |
+| --- | --- | --- |
+| **Temporizador** (`timer`) | Máquina da roupa | A tag da máquina inicia a contagem e o Toque avisa quando acaba; lembretes opcionais de "roupa esquecida" até tocar na tag do estendal ("roupa estendida"). |
+| **Até confirmar** (`until_ack`) | Lixo | Nos dias de recolha manda alertas cada vez mais insistentes até tocar na tag. |
+| **Recorrente** (`recurring`) | Regar plantas | Fica pendente a cada N dias depois do último toque. |
+
+## Stack
+
+Next.js 16 (App Router) + TypeScript + Tailwind · Drizzle ORM com **Neon Postgres** em produção e **PGlite** local (sem configuração) · Vercel Hobby · cron-job.org chama `/api/tick` a cada minuto · ntfy.sh para as notificações.
+
+## Desenvolvimento
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev          # http://localhost:3000 — PGlite em .data/pglite, migrado automaticamente
+npm run board        # quadro local das tarefas dos agentes
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Variáveis de ambiente: copie `.env.example` para `.env.local` e preencha (pelo menos `TOQUE_PASSWORD` e `TOQUE_SESSION_SECRET`). Sem `DATABASE_URL` usa PGlite.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Testes e verificações
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm test             # testes unitários (Vitest)
+npm run test:e2e     # ponta a ponta (Playwright, perfil iPhone/WebKit, porta 4417)
+npm run lint
+npm run typecheck
+```
 
-## Learn More
+Na primeira vez: `npx playwright install webkit`. O e2e faz `next build` + `next start` na porta 4417 com uma BD PGlite em memória (pode correr ao lado do seu `npm run dev`). `E2E_SERVER=dev npm run test:e2e` arranca com `next dev` — mais rápido, mas pare antes o seu `next dev` (o Next 16 só permite um por pasta).
 
-To learn more about Next.js, take a look at the following resources:
+Base de dados: `npm run db:generate` (gera migrações a partir de `src/server/db/schema.ts`) e `npm run db:migrate` (aplica-as; com `DATABASE_URL` aplica no Neon).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Documentação
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Pôr online (Vercel + Neon + cron-job.org)](docs/deploy.md)
+- [Notificações com ntfy](docs/ntfy.md)
+- [Gravar e colar as tags NFC](docs/tags-nfc.md)

@@ -1,0 +1,1 @@
+ALTER TABLE "tags" ADD COLUMN "action" text DEFAULT 'start' NOT NULL;
