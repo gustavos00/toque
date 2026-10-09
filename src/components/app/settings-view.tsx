@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { getErrorMessage, logout, updateSettings } from "@/lib/api";
 import { formatMinutes } from "@/lib/format";
 import { useSettings } from "@/lib/queries";
+import { DEMO_UNAVAILABLE } from "@/lib/demo";
+import { isDemoMode } from "@/shared/demo";
 import { getStoredTheme, saveTheme, type Theme } from "@/lib/theme";
 import { CopyButton } from "./copy-button";
 import { ListField, ListInput, ListRow, ListSection } from "./grouped-list";
@@ -186,6 +188,7 @@ function NtfySection({
   topic: string | null;
   onSave: (patch: { topic?: string | null; server?: string }) => void;
 }) {
+  const isDemo = isDemoMode();
   const [draft, setDraft] = useState(topic ?? "");
   const [suggestion] = useState(createRandomTopic);
   const isValid = draft === "" || NTFY_TOPIC_PATTERN.test(draft);
@@ -209,7 +212,9 @@ function NtfySection({
     <ListSection
       title="Notificações (ntfy)"
       footer={
-        !isValid
+        isDemo
+          ? DEMO_UNAVAILABLE
+          : !isValid
           ? "Só letras, números, _ e -."
           : isShort
             ? "Este tópico é curto e fácil de adivinhar: quem o souber recebe os teus avisos. Usa um mais longo."
@@ -219,8 +224,9 @@ function NtfySection({
       <ListField label="Tópico" htmlFor="ntfy-topic">
         <ListInput
           id="ntfy-topic"
-          value={draft}
-          placeholder="ex.: toque-k29qz7"
+          value={isDemo ? "" : draft}
+          disabled={isDemo}
+          placeholder={isDemo ? "Indisponível" : "ex.: casa-x7k2m9q4w1"}
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}
@@ -232,7 +238,7 @@ function NtfySection({
           className="text-right text-muted-foreground aria-invalid:text-destructive"
         />
       </ListField>
-      {topic ? (
+      {isDemo ? null : topic ? (
         <div className="flex items-center justify-between gap-3 border-b border-separator py-2 pr-2 pl-4">
           <p className="min-w-0 truncate font-mono text-[15px]">{topic}</p>
           <CopyButton value={topic} label="Copiar" />
@@ -260,7 +266,7 @@ function NtfySection({
           <li>Cola o tópico acima{server !== "https://ntfy.sh" ? ` e escolhe o servidor ${server}` : ""}.</li>
           <li>Permite as notificações quando o iOS perguntar.</li>
         </ol>
-        {subscribeUrl && (
+        {subscribeUrl && !isDemo && (
           <a
             href={subscribeUrl}
             target="_blank"

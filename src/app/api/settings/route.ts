@@ -1,5 +1,6 @@
 // GET   /api/settings → SettingsDto (defaults filled in)
 // PATCH /api/settings  body UpdateSettingsRequest → SettingsDto
+// Demo: ntfy.topic is always null and a PATCH touching `ntfy` → 403.
 
 import type { NextRequest } from "next/server";
 import { requireSession } from "@/server/auth";
@@ -11,7 +12,12 @@ import {
   settingsSchema,
   updateSettingsRequestSchema,
 } from "@/shared/settings";
-import { parseJsonBody, parseValue } from "../_lib/http";
+import { isDemoMode } from "@/shared/demo";
+import {
+  createDemoBlockedResponse,
+  parseJsonBody,
+  parseValue,
+} from "../_lib/http";
 
 export async function GET(request: NextRequest) {
   const denied = await requireSession(request);
@@ -26,6 +32,10 @@ export async function PATCH(request: NextRequest) {
 
   const parsed = await parseJsonBody(request, updateSettingsRequestSchema);
   if (!parsed.ok) return parsed.response;
+  // ntfy is blocked on the public demo; the other sections stay editable.
+  if (isDemoMode() && parsed.data.ntfy !== undefined) {
+    return createDemoBlockedResponse();
+  }
 
   const db = await getDb();
   const current = await getSettings(db);

@@ -9,6 +9,8 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    // Separate build dir for the demo (TOQUE_DIST_DIR=.next-demo).
+    ".next-demo/**",
     "out/**",
     "build/**",
     "next-env.d.ts",

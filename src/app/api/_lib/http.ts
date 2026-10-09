@@ -53,3 +53,8 @@ export function parseValue<T extends z.ZodType>(
 export function isUuid(value: string): boolean {
   return z.uuid().safeParse(value).success;
 }
+
+/** 403 for features switched off on the public demo (Google, ntfy). */
+export function createDemoBlockedResponse(): Response {
+  return createErrorResponse(403, "Indisponível na demonstração");
+}

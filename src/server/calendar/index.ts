@@ -7,12 +7,29 @@
 import { and, eq, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { getDb, schema, type Db } from "@/server/db";
 import { buildTask, getTaskById } from "@/server/db/queries";
-import { EMPTY_TASK_STATE, type EngineTaskState } from "@/server/engine/kinds/types";
-import { getGoogleAccessToken, getGoogleConnection, GoogleAuthError, isGoogleConnected, setGoogleLastError } from "@/server/google";
+import {
+  EMPTY_TASK_STATE,
+  type EngineTaskState,
+} from "@/server/engine/kinds/types";
+import {
+  getGoogleAccessToken,
+  getGoogleConnection,
+  GoogleAuthError,
+  isGoogleConnected,
+  setGoogleLastError,
+} from "@/server/google";
+import { isDemoMode } from "@/shared/demo";
 import type { Task } from "@/shared/tasks";
 import { TIMEZONE } from "@/shared/time";
-import { buildDesiredCalendarEvents, isPastEventKept, type DesiredCalendarEvent } from "./events";
-import { createGoogleCalendarClient, type GoogleCalendarClient } from "./google-client";
+import {
+  buildDesiredCalendarEvents,
+  isPastEventKept,
+  type DesiredCalendarEvent,
+} from "./events";
+import {
+  createGoogleCalendarClient,
+  type GoogleCalendarClient,
+} from "./google-client";
 
 export { buildDesiredCalendarEvents, CALENDAR_HORIZON_DAYS } from "./events";
 export type { GoogleCalendarClient } from "./google-client";
@@ -27,14 +44,17 @@ type CalendarEventRow = typeof calendarEvents.$inferSelect;
 
 function createDefaultClient(): GoogleCalendarClient {
   return createGoogleCalendarClient({
-    getAccessToken: async (options) => getGoogleAccessToken({ forceRefresh: options?.forceRefresh }),
+    getAccessToken: async (options) =>
+      getGoogleAccessToken({ forceRefresh: options?.forceRefresh }),
   });
 }
 
 let createClient: () => GoogleCalendarClient = createDefaultClient;
 
 /** Tests inject a fake Google client; null restores the real one. */
-export function setCalendarClientFactory(factory: (() => GoogleCalendarClient) | null): void {
+export function setCalendarClientFactory(
+  factory: (() => GoogleCalendarClient) | null,
+): void {
   createClient = factory ?? createDefaultClient;
 }
 
@@ -43,7 +63,12 @@ function getErrorMessage(error: unknown): string {
 }
 
 /** Connected → { db, client }; otherwise null (everything becomes a no-op). */
-async function getSyncContext(): Promise<{ db: Db; client: GoogleCalendarClient } | null> {
+async function getSyncContext(): Promise<{
+  db: Db;
+  client: GoogleCalendarClient;
+} | null> {
+  // Public demo: Google Calendar is blocked before any DB read or Google call.
+  if (isDemoMode()) return null;
   const db = await getDb();
   if (!isGoogleConnected(await getGoogleConnection(db))) return null;
   return { db, client: createClient() };
@@ -51,14 +76,21 @@ async function getSyncContext(): Promise<{ db: Db; client: GoogleCalendarClient 
 
 /** Records a failure for the settings page; auth "not connected" is not an error. */
 async function recordSyncError(db: Db, error: unknown): Promise<void> {
-  if (error instanceof GoogleAuthError && error.code === "not_connected") return;
+  if (error instanceof GoogleAuthError && error.code === "not_connected")
+    return;
   console.error("calendar sync failed", error);
-  await setGoogleLastError(db, `Sincronização com o Google Calendar falhou: ${getErrorMessage(error)}`).catch(() => {});
+  await setGoogleLastError(
+    db,
+    `Sincronização com o Google Calendar falhou: ${getErrorMessage(error)}`,
+  ).catch(() => {});
 }
 
 /** Marks every live event row as deleted (its calendar is gone). */
 async function markAllEventsDeleted(db: Db, now: Date) {
-  await db.update(calendarEvents).set({ deletedAt: now }).where(isNull(calendarEvents.deletedAt));
+  await db
+    .update(calendarEvents)
+    .set({ deletedAt: now })
+    .where(isNull(calendarEvents.deletedAt));
 }
 
 /**
@@ -66,19 +98,33 @@ async function markAllEventsDeleted(db: Db, now: Date) {
  * `verify` checks it still exists in Google (it may have been deleted there).
  * Two racing creators: the first stored id wins and the loser deletes its own calendar.
  */
-async function ensureCalendarId(db: Db, client: GoogleCalendarClient, now: Date, verify: boolean): Promise<string> {
+async function ensureCalendarId(
+  db: Db,
+  client: GoogleCalendarClient,
+  now: Date,
+  verify: boolean,
+): Promise<string> {
   const connection = await getGoogleConnection(db);
   if (connection?.calendarId) {
-    if (!verify || (await client.getCalendar(connection.calendarId))) return connection.calendarId;
+    if (!verify || (await client.getCalendar(connection.calendarId)))
+      return connection.calendarId;
     // Deleted in Google: forget it and its events, then create a new one.
     await db
       .update(googleConnection)
       .set({ calendarId: null })
-      .where(and(eq(googleConnection.id, 1), eq(googleConnection.calendarId, connection.calendarId)));
+      .where(
+        and(
+          eq(googleConnection.id, 1),
+          eq(googleConnection.calendarId, connection.calendarId),
+        ),
+      );
     await markAllEventsDeleted(db, now);
   }
 
-  const created = await client.createCalendar({ summary: CALENDAR_NAME, timeZone: TIMEZONE });
+  const created = await client.createCalendar({
+    summary: CALENDAR_NAME,
+    timeZone: TIMEZONE,
+  });
   const [stored] = await db
     .update(googleConnection)
     .set({ calendarId: created.id })
@@ -95,7 +141,8 @@ async function ensureCalendarId(db: Db, client: GoogleCalendarClient, now: Date,
 /** Creates the "Toque" secondary calendar if missing (Europe/Lisbon) and returns its id. */
 export async function ensureToqueCalendar(): Promise<string> {
   const context = await getSyncContext();
-  if (!context) throw new GoogleAuthError("not_connected", "Google Calendar não ligado");
+  if (!context)
+    throw new GoogleAuthError("not_connected", "Google Calendar não ligado");
   return ensureCalendarId(context.db, context.client, new Date(), true);
 }
 
@@ -110,21 +157,49 @@ export async function deleteToqueCalendar(): Promise<void> {
   await db
     .update(googleConnection)
     .set({ calendarId: null })
-    .where(and(eq(googleConnection.id, 1), eq(googleConnection.calendarId, connection.calendarId)));
+    .where(
+      and(
+        eq(googleConnection.id, 1),
+        eq(googleConnection.calendarId, connection.calendarId),
+      ),
+    );
   await markAllEventsDeleted(db, new Date());
 }
 
-async function createGoogleEvent(db: Db, client: GoogleCalendarClient, calendarId: string, row: CalendarEventRow, event: DesiredCalendarEvent, now: Date) {
+async function createGoogleEvent(
+  db: Db,
+  client: GoogleCalendarClient,
+  calendarId: string,
+  row: CalendarEventRow,
+  event: DesiredCalendarEvent,
+  now: Date,
+) {
   const { id } = await client.insertEvent(calendarId, event.body);
   await db
     .update(calendarEvents)
-    .set({ googleEventId: id, start: event.start, end: event.end, contentHash: event.hash, syncedAt: now })
+    .set({
+      googleEventId: id,
+      start: event.start,
+      end: event.end,
+      contentHash: event.hash,
+      syncedAt: now,
+    })
     .where(eq(calendarEvents.id, row.id));
 }
 
-async function deleteGoogleEvent(db: Db, client: GoogleCalendarClient, calendarId: string, row: CalendarEventRow, now: Date) {
-  if (row.googleEventId) await client.deleteEvent(calendarId, row.googleEventId);
-  await db.update(calendarEvents).set({ deletedAt: now }).where(eq(calendarEvents.id, row.id));
+async function deleteGoogleEvent(
+  db: Db,
+  client: GoogleCalendarClient,
+  calendarId: string,
+  row: CalendarEventRow,
+  now: Date,
+) {
+  if (row.googleEventId)
+    await client.deleteEvent(calendarId, row.googleEventId);
+  await db
+    .update(calendarEvents)
+    .set({ deletedAt: now })
+    .where(eq(calendarEvents.id, row.id));
 }
 
 /**
@@ -146,7 +221,9 @@ async function reconcileTaskEvents(
   const live = await db
     .select()
     .from(calendarEvents)
-    .where(and(eq(calendarEvents.taskId, taskId), isNull(calendarEvents.deletedAt)));
+    .where(
+      and(eq(calendarEvents.taskId, taskId), isNull(calendarEvents.deletedAt)),
+    );
   const liveByKey = new Map(live.map((row) => [row.occurrenceKey, row]));
   const desiredKeys = new Set(desired.map((event) => event.occurrenceKey));
   const failures: unknown[] = [];
@@ -166,38 +243,72 @@ async function reconcileTaskEvents(
         // it in Google, so two overlapping syncs don't create duplicates.
         const [claimed] = await db
           .insert(calendarEvents)
-          .values({ taskId, occurrenceKey: event.occurrenceKey, start: event.start, end: event.end, contentHash: "" })
+          .values({
+            taskId,
+            occurrenceKey: event.occurrenceKey,
+            start: event.start,
+            end: event.end,
+            contentHash: "",
+          })
           .onConflictDoUpdate({
             target: [calendarEvents.taskId, calendarEvents.occurrenceKey],
-            set: { deletedAt: null, googleEventId: null, contentHash: "", syncedAt: null },
+            set: {
+              deletedAt: null,
+              googleEventId: null,
+              contentHash: "",
+              syncedAt: null,
+            },
             setWhere: isNotNull(calendarEvents.deletedAt),
           })
           .returning();
-        if (claimed) await createGoogleEvent(db, client, calendarId, claimed, event, now);
+        if (claimed)
+          await createGoogleEvent(db, client, calendarId, claimed, event, now);
         return;
       }
-      if (!row.googleEventId) return createGoogleEvent(db, client, calendarId, row, event, now);
+      if (!row.googleEventId)
+        return createGoogleEvent(db, client, calendarId, row, event, now);
       if (row.contentHash === event.hash) return;
-      const updated = await client.updateEvent(calendarId, row.googleEventId, event.body);
-      if (!updated) return createGoogleEvent(db, client, calendarId, row, event, now); // gone in Google
+      const updated = await client.updateEvent(
+        calendarId,
+        row.googleEventId,
+        event.body,
+      );
+      if (!updated)
+        return createGoogleEvent(db, client, calendarId, row, event, now); // gone in Google
       await db
         .update(calendarEvents)
-        .set({ start: event.start, end: event.end, contentHash: event.hash, syncedAt: now })
+        .set({
+          start: event.start,
+          end: event.end,
+          contentHash: event.hash,
+          syncedAt: now,
+        })
         .where(eq(calendarEvents.id, row.id));
     });
   }
 
   for (const row of live) {
-    if (desiredKeys.has(row.occurrenceKey) || isPastEventKept(task, row.occurrenceKey, now)) continue;
+    if (
+      desiredKeys.has(row.occurrenceKey) ||
+      isPastEventKept(task, row.occurrenceKey, now)
+    )
+      continue;
     await attempt(() => deleteGoogleEvent(db, client, calendarId, row, now));
   }
   if (failures.length > 0) throw failures[0];
 }
 
-async function getEngineState(db: Db, taskId: string): Promise<EngineTaskState> {
-  const [row] = await db.select().from(taskState).where(eq(taskState.taskId, taskId));
+async function getEngineState(
+  db: Db,
+  taskId: string,
+): Promise<EngineTaskState> {
+  const [row] = await db
+    .select()
+    .from(taskState)
+    .where(eq(taskState.taskId, taskId));
   if (!row) return { ...EMPTY_TASK_STATE };
-  const { timerStartedAt, timerEndsAt, lastDoneAt, lastAckDate, snoozedUntil } = row;
+  const { timerStartedAt, timerEndsAt, lastDoneAt, lastAckDate, snoozedUntil } =
+    row;
   return { timerStartedAt, timerEndsAt, lastDoneAt, lastAckDate, snoozedUntil };
 }
 
@@ -205,7 +316,10 @@ async function getEngineState(db: Db, taskId: string): Promise<EngineTaskState> 
  * Reconciles one task's events (deleted/disabled task → its events are removed).
  * Never throws; a no-op when Google isn't connected.
  */
-export async function syncTaskCalendarEvents(taskId: string, now: Date): Promise<void> {
+export async function syncTaskCalendarEvents(
+  taskId: string,
+  now: Date,
+): Promise<void> {
   const context = await getSyncContext().catch(() => null);
   if (!context) return;
   const { db, client } = context;
@@ -221,25 +335,47 @@ export async function syncTaskCalendarEvents(taskId: string, now: Date): Promise
   }
 }
 
-async function runFullSync(db: Db, client: GoogleCalendarClient, now: Date): Promise<void> {
+async function runFullSync(
+  db: Db,
+  client: GoogleCalendarClient,
+  now: Date,
+): Promise<void> {
   const calendarId = await ensureCalendarId(db, client, now, true);
   const failures: unknown[] = [];
   for (const row of await db.select().from(tasks)) {
-    await reconcileTaskEvents(db, client, calendarId, buildTask(row), row.id, now).catch((error) => failures.push(error));
+    await reconcileTaskEvents(
+      db,
+      client,
+      calendarId,
+      buildTask(row),
+      row.id,
+      now,
+    ).catch((error) => failures.push(error));
   }
-  await deleteOrphanEvents(db, client, calendarId, now).catch((error) => failures.push(error));
+  await deleteOrphanEvents(db, client, calendarId, now).catch((error) =>
+    failures.push(error),
+  );
   if (failures.length > 0) throw failures[0];
 }
 
 /** Events of deleted tasks (task_id set null by the FK). */
-async function deleteOrphanEvents(db: Db, client: GoogleCalendarClient, calendarId: string, now: Date) {
+async function deleteOrphanEvents(
+  db: Db,
+  client: GoogleCalendarClient,
+  calendarId: string,
+  now: Date,
+) {
   const orphans = await db
     .select()
     .from(calendarEvents)
-    .where(and(isNull(calendarEvents.taskId), isNull(calendarEvents.deletedAt)));
+    .where(
+      and(isNull(calendarEvents.taskId), isNull(calendarEvents.deletedAt)),
+    );
   const failures: unknown[] = [];
   for (const row of orphans) {
-    await deleteGoogleEvent(db, client, calendarId, row, now).catch((error) => failures.push(error));
+    await deleteGoogleEvent(db, client, calendarId, row, now).catch((error) =>
+      failures.push(error),
+    );
   }
   if (failures.length > 0) throw failures[0];
 }
@@ -251,7 +387,10 @@ export async function syncAllCalendarEvents(now: Date): Promise<void> {
   const { db, client } = context;
   try {
     await runFullSync(db, client, now);
-    await db.update(googleConnection).set({ lastSyncAt: now, lastError: null }).where(eq(googleConnection.id, 1));
+    await db
+      .update(googleConnection)
+      .set({ lastSyncAt: now, lastError: null })
+      .where(eq(googleConnection.id, 1));
   } catch (error) {
     await recordSyncError(db, error);
   }
@@ -275,7 +414,10 @@ export async function syncAllCalendarEventsIfDue(now: Date): Promise<boolean> {
           isNull(googleConnection.brokenAt),
           or(
             isNull(googleConnection.lastSyncAt),
-            lte(googleConnection.lastSyncAt, sql`${new Date(now.getTime() - FULL_SYNC_INTERVAL_MS)}`),
+            lte(
+              googleConnection.lastSyncAt,
+              sql`${new Date(now.getTime() - FULL_SYNC_INTERVAL_MS)}`,
+            ),
           ),
         ),
       )

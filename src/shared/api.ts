@@ -178,6 +178,10 @@ export type DashboardDto = {
 
 /** GET /api/google/status (also returned by disconnect and resync). */
 export type GoogleStatusDto = {
+  /** Public demo: Google is blocked; every other field is empty/false. */
+  demo: boolean;
+  /** Demo only: when all data is next wiped (every 5 min); null otherwise. */
+  demoResetAt: IsoDateTime | null;
   /** GOOGLE_CLIENT_ID/SECRET and TOQUE_ENCRYPTION_KEY are set on the server. */
   configured: boolean;
   /** A connection exists and Google has not rejected it. */
@@ -189,4 +193,14 @@ export type GoogleStatusDto = {
   /** Portuguese message for the settings page (auth or sync problem). */
   lastError: string | null;
   lastSyncAt: IsoDateTime | null;
+};
+
+// ---------- App info ----------
+
+/** GET /api/app-info — public (no session), e.g. for the login page. */
+export type AppInfoDto = {
+  /** Public demo deployment (Google and ntfy blocked, password "demo"). */
+  demo: boolean;
+  /** Demo only: when all data is next wiped (every 5 min); null otherwise. */
+  demoResetAt: IsoDateTime | null;
 };

@@ -7,12 +7,22 @@ const API_BASE = "https://www.googleapis.com/calendar/v3";
 export interface GoogleCalendarClient {
   /** null when the calendar no longer exists (deleted by the user in Google). */
   getCalendar(calendarId: string): Promise<{ id: string } | null>;
-  createCalendar(input: { summary: string; timeZone: string }): Promise<{ id: string }>;
+  createCalendar(input: {
+    summary: string;
+    timeZone: string;
+  }): Promise<{ id: string }>;
   /** 404/410 count as success. */
   deleteCalendar(calendarId: string): Promise<void>;
-  insertEvent(calendarId: string, body: CalendarEventBody): Promise<{ id: string }>;
+  insertEvent(
+    calendarId: string,
+    body: CalendarEventBody,
+  ): Promise<{ id: string }>;
   /** null when the event is gone in Google (the caller recreates it). */
-  updateEvent(calendarId: string, eventId: string, body: CalendarEventBody): Promise<{ id: string } | null>;
+  updateEvent(
+    calendarId: string,
+    eventId: string,
+    body: CalendarEventBody,
+  ): Promise<{ id: string } | null>;
   /** 404/410 count as success. */
   deleteEvent(calendarId: string, eventId: string): Promise<void>;
 }
@@ -30,20 +40,31 @@ export class GoogleCalendarError extends Error {
 
 type ClientOptions = {
   /** Returns a valid access token; `forceRefresh` after a 401. null = not connected. */
-  getAccessToken: (options?: { forceRefresh?: boolean }) => Promise<string | null>;
+  getAccessToken: (options?: {
+    forceRefresh?: boolean;
+  }) => Promise<string | null>;
   fetch?: typeof fetch;
 };
 
-export function createGoogleCalendarClient(options: ClientOptions): GoogleCalendarClient {
+export function createGoogleCalendarClient(
+  options: ClientOptions,
+): GoogleCalendarClient {
   const doFetch = options.fetch ?? fetch;
 
-  async function request(method: string, path: string, body?: unknown): Promise<Response> {
+  async function request(
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<Response> {
     const send = async (forceRefresh: boolean) => {
       const token = await options.getAccessToken({ forceRefresh });
       if (!token) throw new GoogleCalendarError(401, "sem ligação ao Google");
       return doFetch(`${API_BASE}${path}`, {
         method,
-        headers: { Authorization: `Bearer ${token}`, ...(body ? { "Content-Type": "application/json" } : {}) },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(body ? { "Content-Type": "application/json" } : {}),
+        },
         body: body ? JSON.stringify(body) : undefined,
       });
     };
@@ -73,26 +94,42 @@ export function createGoogleCalendarClient(options: ClientOptions): GoogleCalend
       return { id };
     },
     async createCalendar(input) {
-      const { id } = await readJson<{ id: string }>(await request("POST", "/calendars", input));
+      const { id } = await readJson<{ id: string }>(
+        await request("POST", "/calendars", input),
+      );
       return { id };
     },
     async deleteCalendar(calendarId) {
-      const response = await request("DELETE", `/calendars/${encode(calendarId)}`);
-      if (!response.ok && !isGone(response.status)) throw await createError(response);
+      const response = await request(
+        "DELETE",
+        `/calendars/${encode(calendarId)}`,
+      );
+      if (!response.ok && !isGone(response.status))
+        throw await createError(response);
     },
     async insertEvent(calendarId, body) {
-      const { id } = await readJson<{ id: string }>(await request("POST", `/calendars/${encode(calendarId)}/events`, body));
+      const { id } = await readJson<{ id: string }>(
+        await request("POST", `/calendars/${encode(calendarId)}/events`, body),
+      );
       return { id };
     },
     async updateEvent(calendarId, eventId, body) {
-      const response = await request("PUT", `/calendars/${encode(calendarId)}/events/${encode(eventId)}`, body);
+      const response = await request(
+        "PUT",
+        `/calendars/${encode(calendarId)}/events/${encode(eventId)}`,
+        body,
+      );
       if (isGone(response.status)) return null;
       const { id } = await readJson<{ id: string }>(response);
       return { id };
     },
     async deleteEvent(calendarId, eventId) {
-      const response = await request("DELETE", `/calendars/${encode(calendarId)}/events/${encode(eventId)}`);
-      if (!response.ok && !isGone(response.status)) throw await createError(response);
+      const response = await request(
+        "DELETE",
+        `/calendars/${encode(calendarId)}/events/${encode(eventId)}`,
+      );
+      if (!response.ok && !isGone(response.status))
+        throw await createError(response);
     },
   };
 }

@@ -221,3 +221,18 @@ export const calendarEvents = pgTable(
       .where(sql`${table.deletedAt} is null`),
   ],
 );
+
+/**
+ * Public demo bookkeeping, single row (id = 1). The demo wipes its data every
+ * few minutes (see src/server/db/demo.ts); unused outside demo mode.
+ */
+export const demoState = pgTable(
+  "demo_state",
+  {
+    id: smallint("id").primaryKey().default(1),
+    lastResetAt: timestamp("last_reset_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [check("demo_state_single_row", sql`${table.id} = 1`)],
+);

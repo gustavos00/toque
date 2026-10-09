@@ -109,7 +109,7 @@ export function ListInput({ className, ...props }: ComponentProps<"input">) {
   return (
     <input
       className={cn(
-        "h-11 w-full min-w-0 bg-transparent text-[17px] outline-none placeholder:text-muted-foreground/70",
+        "h-11 w-full min-w-0 bg-transparent text-[17px] outline-none placeholder:text-muted-foreground/70 disabled:cursor-not-allowed disabled:opacity-60",
         className,
       )}
       {...props}

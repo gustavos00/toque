@@ -18,7 +18,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { disconnectGoogle, getErrorMessage, GOOGLE_CONNECT_PATH, resyncGoogle } from "@/lib/api";
 import { formatRelative } from "@/lib/format";
+import { DEMO_UNAVAILABLE } from "@/lib/demo";
 import { useGoogleStatus } from "@/lib/queries";
+import { isDemoMode } from "@/shared/demo";
 import { ListRow, ListSection } from "./grouped-list";
 
 const SECTION_TITLE = "Google Calendar";
@@ -38,6 +40,7 @@ function useGoogleReturnParam(onReturn: () => void) {
     if (outcome === "ok") toast.success("Google Calendar ligado");
     else if (outcome === "erro") toast.error("Não foi possível ligar ao Google. Tenta outra vez.");
     else if (outcome === "config") setTimeout(() => setIsMissingConfig(true), 0);
+    else if (outcome === "demo") toast.info(DEMO_UNAVAILABLE);
     params.delete("google");
     const query = params.toString();
     window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
@@ -70,6 +73,20 @@ export function GoogleCalendarSection() {
     } finally {
       setBusyAction(null);
     }
+  }
+
+  // Public demo: show the section, but nothing can be connected.
+  if (isDemoMode() || (status as (GoogleStatusDto & { demo?: boolean }) | undefined)?.demo) {
+    return (
+      <ListSection title={SECTION_TITLE} footer={DEMO_UNAVAILABLE}>
+        <p className="px-4 pt-3 text-[15px] text-muted-foreground">{EXPLANATION}</p>
+        <div className="p-3">
+          <Button size="xl" className="w-full" disabled>
+            <CalendarDays /> Ligar ao Google
+          </Button>
+        </div>
+      </ListSection>
+    );
   }
 
   if (isLoading && !status) {

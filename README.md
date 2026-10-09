@@ -42,6 +42,7 @@ Variáveis de ambiente: copie `.env.example` para `.env.local` e preencha (pelo 
 ```bash
 npm test             # testes unitários (Vitest)
 npm run test:e2e     # ponta a ponta (Playwright, perfil iPhone/WebKit, porta 4417)
+npm run test:e2e:demo  # o mesmo, contra um build de demonstração (porta 4421)
 npm run lint
 npm run typecheck
 ```
@@ -56,3 +57,4 @@ Base de dados: `npm run db:generate` (gera migrações a partir de `src/server/d
 - [Notificações com ntfy](docs/ntfy.md)
 - [Gravar e colar as tags NFC](docs/tags-nfc.md)
 - [Ligar ao Google Calendar](docs/google-calendar.md)
+- [Demonstração pública](docs/demo.md)

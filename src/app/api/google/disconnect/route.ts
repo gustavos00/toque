@@ -6,6 +6,7 @@ import type { NextRequest } from "next/server";
 import { requireSession } from "@/server/auth";
 import { deleteToqueCalendar } from "@/server/calendar";
 import { getDb } from "@/server/db";
+import { isDemoMode } from "@/shared/demo";
 import { calendarEvents } from "@/server/db/schema";
 import {
   buildGoogleStatus,
@@ -14,10 +15,12 @@ import {
   getGoogleRefreshToken,
   revokeGoogleToken,
 } from "@/server/google";
+import { createDemoBlockedResponse } from "../../_lib/http";
 
 export async function POST(request: NextRequest) {
   const denied = await requireSession(request);
   if (denied) return denied;
+  if (isDemoMode()) return createDemoBlockedResponse();
 
   const db = await getDb();
   if (await getGoogleConnection(db)) {

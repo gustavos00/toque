@@ -1,6 +1,12 @@
 // Engine-only time helpers. The base conversions live in @/shared/time so the
 // engine and the dashboard agree on every local date/time.
-import { addLocalDays, createLocalInstant, getIsoWeekday, type LocalDate, type LocalTime } from "@/shared/time";
+import {
+  addLocalDays,
+  createLocalInstant,
+  getIsoWeekday,
+  type LocalDate,
+  type LocalTime,
+} from "@/shared/time";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEKDAY_LABELS = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];

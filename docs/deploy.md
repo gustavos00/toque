@@ -37,7 +37,7 @@ O que o `vercel.json` faz:
 - `regions: ["fra1"]` — as funções correm em Frankfurt, perto de Lisboa e da base de dados.
 - `buildCommand` — **aplica as migrações em cada deploy**, antes do `next build`. Não precisa de correr migrações à mão.
 
-O projeto fica em `https://<nome-do-projeto>.vercel.app` (o do Gustavo é `https://toque-two.vercel.app`).
+O projeto fica em `https://<nome-do-projeto>.vercel.app` (ex.: `https://toque-two.vercel.app`).
 
 ## 3. Criar a base de dados Neon (Vercel Marketplace)
 

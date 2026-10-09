@@ -2,6 +2,7 @@
 
 import { decodeJwt, jwtVerify, SignJWT } from "jose";
 import { getSessionKey } from "@/server/auth/session";
+import { isDemoMode } from "@/shared/demo";
 import { getAppBaseUrl } from "@/server/notify";
 import { getEncryptionKey } from "./crypto";
 
@@ -26,13 +27,17 @@ export function getGoogleCredentials(): GoogleCredentials | null {
   return clientId && clientSecret ? { clientId, clientSecret } : null;
 }
 
-/** All env needed for Google is present (credentials + encryption key). */
+/**
+ * All env needed for Google is present (credentials + encryption key).
+ * Always false on the public demo, where Google is blocked.
+ */
 export function isGoogleConfigured(): boolean {
+  if (isDemoMode()) return false;
   return getGoogleCredentials() !== null && getEncryptionKey() !== null;
 }
 
 function requireGoogleCredentials(): GoogleCredentials {
-  const credentials = getGoogleCredentials();
+  const credentials = isDemoMode() ? null : getGoogleCredentials();
   if (!credentials) {
     throw new GoogleAuthError(
       "not_configured",

@@ -4,6 +4,7 @@
 import { eq, isNull } from "drizzle-orm";
 import { getDb, type Db } from "@/server/db";
 import { calendarEvents, googleConnection } from "@/server/db/schema";
+import { isDemoMode } from "@/shared/demo";
 import { decryptSecret, encryptSecret } from "./crypto";
 import {
   GoogleAuthError,
@@ -39,6 +40,9 @@ export async function saveGoogleConnection(
   tokens: GoogleTokens & { refreshToken: string; email: string },
   now = new Date(),
 ): Promise<GoogleConnectionRow> {
+  if (isDemoMode()) {
+    throw new GoogleAuthError("not_configured", "Indisponível na demonstração");
+  }
   const existing = await getGoogleConnection(db);
   const isSameAccount = existing?.email === tokens.email;
   if (existing && !isSameAccount) {
@@ -99,6 +103,9 @@ export async function getGoogleRefreshToken(db: Db): Promise<string | null> {
 export async function getGoogleAccessToken(
   deps: { db?: Db; now?: Date; fetch?: FetchFn; forceRefresh?: boolean } = {},
 ): Promise<string> {
+  if (isDemoMode()) {
+    throw new GoogleAuthError("not_configured", "Indisponível na demonstração");
+  }
   const db = deps.db ?? (await getDb());
   const now = deps.now ?? new Date();
   const row = await getGoogleConnection(db);

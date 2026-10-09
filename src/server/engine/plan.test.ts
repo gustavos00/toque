@@ -2,20 +2,42 @@ import { describe, expect, it } from "vitest";
 import { createLocalInstant, getLocalTime } from "@/shared/time";
 import { selectRowsToSend } from "./catch-up";
 import { buildDesiredNotifications } from "./plan";
-import { createTestSettings, createTestState, createTestTask } from "./test-fixtures";
+import {
+  createTestSettings,
+  createTestState,
+  createTestTask,
+} from "./test-fixtures";
 
 describe("buildDesiredNotifications", () => {
-  const timer = createTestTask("timer", { durationMinutes: 60, forgottenReminderMinutes: [15, 30, 60] });
+  const timer = createTestTask("timer", {
+    durationMinutes: 60,
+    forgottenReminderMinutes: [15, 30, 60],
+  });
 
   it("returns nothing for a disabled task", () => {
-    const task = createTestTask("recurring", { everyDays: 1 }, { enabled: false });
-    expect(buildDesiredNotifications(task, createTestState(), { now: new Date(), settings: createTestSettings() })).toEqual([]);
+    const task = createTestTask(
+      "recurring",
+      { everyDays: 1 },
+      { enabled: false },
+    );
+    expect(
+      buildDesiredNotifications(task, createTestState(), {
+        now: new Date(),
+        settings: createTestSettings(),
+      }),
+    ).toEqual([]);
   });
 
   it("collapses rows deferred by quiet hours into the latest one", () => {
     const startedAt = createLocalInstant("2026-10-09", "22:10");
-    const state = createTestState({ timerStartedAt: startedAt, timerEndsAt: createLocalInstant("2026-10-09", "23:10") });
-    const rows = buildDesiredNotifications(timer, state, { now: startedAt, settings: createTestSettings() });
+    const state = createTestState({
+      timerStartedAt: startedAt,
+      timerEndsAt: createLocalInstant("2026-10-09", "23:10"),
+    });
+    const rows = buildDesiredNotifications(timer, state, {
+      now: startedAt,
+      settings: createTestSettings(),
+    });
     expect(rows).toHaveLength(1);
     expect(rows[0].kind).toBe("timer_forgotten");
     expect(rows[0].key).toContain(":forgotten:60");
@@ -23,7 +45,10 @@ describe("buildDesiredNotifications", () => {
   });
 
   it("drops until_ack alerts that quiet hours would push into the next day", () => {
-    const task = createTestTask("until_ack", { weekdays: [5], reminderTimes: ["21:30", "23:30"] });
+    const task = createTestTask("until_ack", {
+      weekdays: [5],
+      reminderTimes: ["21:30", "23:30"],
+    });
     const rows = buildDesiredNotifications(task, createTestState(), {
       now: createLocalInstant("2026-10-09", "07:00"),
       settings: createTestSettings(),
@@ -35,12 +60,19 @@ describe("buildDesiredNotifications", () => {
   it("replaces rows held by a snooze with one reminder at the snooze end", () => {
     const startedAt = createLocalInstant("2026-10-09", "14:00");
     const snoozedUntil = createLocalInstant("2026-10-09", "15:50");
-    const state = createTestState({ timerStartedAt: startedAt, timerEndsAt: createLocalInstant("2026-10-09", "15:00"), snoozedUntil });
+    const state = createTestState({
+      timerStartedAt: startedAt,
+      timerEndsAt: createLocalInstant("2026-10-09", "15:00"),
+      snoozedUntil,
+    });
     const rows = buildDesiredNotifications(timer, state, {
       now: createLocalInstant("2026-10-09", "15:20"),
       settings: createTestSettings(),
     });
-    expect(rows.map((row) => getLocalTime(row.dueAt))).toEqual(["15:50", "16:00"]);
+    expect(rows.map((row) => getLocalTime(row.dueAt))).toEqual([
+      "15:50",
+      "16:00",
+    ]);
     expect(rows[0].key).toMatch(/^snooze:/);
     expect(rows[0].payload.message).toContain("Adiado até às 15:50.");
     expect(rows[0].payload.title).toContain("esqueceste-te");

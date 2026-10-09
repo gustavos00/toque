@@ -11,7 +11,10 @@ type NtfyOptions = {
 };
 
 /** ntfy JSON publish body: https://docs.ntfy.sh/publish/#publish-as-json */
-export function buildNtfyBody(topic: string, notification: OutgoingNotification) {
+export function buildNtfyBody(
+  topic: string,
+  notification: OutgoingNotification,
+) {
   return {
     topic,
     title: notification.title,
@@ -38,7 +41,9 @@ export function createNtfyNotifier(options: NtfyOptions): Notifier {
   const endpoint = options.baseUrl.replace(/\/+$/, "");
   return {
     async send(notification) {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
       if (options.token) headers.Authorization = `Bearer ${options.token}`;
       const response = await doFetch(endpoint, {
         method: "POST",
@@ -48,7 +53,9 @@ export function createNtfyNotifier(options: NtfyOptions): Notifier {
       if (!response.ok) {
         // Never echo the topic: it is a secret.
         const detail = (await response.text().catch(() => "")).slice(0, 200);
-        throw new Error(`ntfy respondeu ${response.status}${detail ? `: ${detail}` : ""}`);
+        throw new Error(
+          `ntfy respondeu ${response.status}${detail ? `: ${detail}` : ""}`,
+        );
       }
     },
   };

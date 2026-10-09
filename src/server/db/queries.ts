@@ -9,6 +9,7 @@ import type {
   TaskStateDto,
   TaskTagDto,
 } from "@/shared/api";
+import { isDemoMode } from "@/shared/demo";
 import { mergeSettings, type Settings } from "@/shared/settings";
 import {
   taskDefinitionSchema,
@@ -63,18 +64,27 @@ export async function getTagByToken(
   return row ?? null;
 }
 
-/** Stored settings merged over the defaults (never throws on old shapes). */
+/** Stored settings merged over the defaults. The demo never has an ntfy topic. */
 export async function getSettings(db: Db): Promise<Settings> {
   const [row] = await db.select().from(settings).where(eq(settings.id, 1));
+  let value: Settings;
   try {
-    return mergeSettings(row?.data);
+    value = mergeSettings(row?.data);
   } catch {
-    return mergeSettings(undefined);
+    value = mergeSettings(undefined);
   }
+  return removeDemoSecrets(value);
+}
+
+function removeDemoSecrets(value: Settings): Settings {
+  return isDemoMode()
+    ? { ...value, ntfy: { ...value.ntfy, topic: null } }
+    : value;
 }
 
 /** Upserts the single settings row (pass an already validated value). */
-export async function saveSettings(db: Db, value: Settings): Promise<void> {
+export async function saveSettings(db: Db, input: Settings): Promise<void> {
+  const value = removeDemoSecrets(input);
   await db
     .insert(settings)
     .values({ id: 1, data: value })
@@ -163,6 +173,13 @@ export function buildTagDto(row: TagRow, baseUrl: string): TagDto {
   };
 }
 
+function removeUserAgent(data: Record<string, unknown>) {
+  if (!("userAgent" in data)) return data;
+  const rest = { ...data };
+  delete rest.userAgent;
+  return rest;
+}
+
 export function buildEventDto(
   row: EventRow,
   taskName: string | null,
@@ -174,7 +191,7 @@ export function buildEventDto(
     taskId: row.taskId,
     taskName,
     tagId: row.tagId,
-    data: row.data,
+    data: isDemoMode() ? removeUserAgent(row.data) : row.data,
   };
 }
 

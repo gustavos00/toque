@@ -5,16 +5,21 @@ import type { NextRequest } from "next/server";
 import { requireSession } from "@/server/auth";
 import { syncAllCalendarEvents } from "@/server/calendar";
 import { getDb } from "@/server/db";
+import { isDemoMode } from "@/shared/demo";
 import {
   buildGoogleStatus,
   getGoogleConnection,
   isGoogleConnected,
 } from "@/server/google";
-import { createErrorResponse } from "../../_lib/http";
+import {
+  createDemoBlockedResponse,
+  createErrorResponse,
+} from "../../_lib/http";
 
 export async function POST(request: NextRequest) {
   const denied = await requireSession(request);
   if (denied) return denied;
+  if (isDemoMode()) return createDemoBlockedResponse();
 
   const db = await getDb();
   if (!isGoogleConnected(await getGoogleConnection(db))) {

@@ -1,9 +1,20 @@
 import { isUntilAckDay } from "@/shared/schedule";
 import type { UntilAckConfig } from "@/shared/tasks";
-import { addLocalDays, createLocalInstant, getLocalDate, type LocalDate } from "@/shared/time";
+import {
+  addLocalDays,
+  createLocalInstant,
+  getLocalDate,
+  type LocalDate,
+} from "@/shared/time";
 import { buildNotificationKey } from "../keys";
 import { formatLocalDateLabel, getEndOfLocalDay } from "../time";
-import type { EngineTaskState, KindHandler, PlannedNotification, TaskOf, TaskOutcome } from "./types";
+import type {
+  EngineTaskState,
+  KindHandler,
+  PlannedNotification,
+  TaskOf,
+  TaskOutcome,
+} from "./types";
 
 type UntilAckTask = TaskOf<"until_ack">;
 
@@ -11,7 +22,10 @@ type UntilAckTask = TaskOf<"until_ack">;
 const MAX_LOOKAHEAD_DAYS = 400;
 
 /** First scheduled day strictly after `after`, or null if none within ~a year. */
-export function getNextUntilAckDate(config: UntilAckConfig, after: LocalDate): LocalDate | null {
+export function getNextUntilAckDate(
+  config: UntilAckConfig,
+  after: LocalDate,
+): LocalDate | null {
   for (let offset = 1; offset <= MAX_LOOKAHEAD_DAYS; offset++) {
     const date = addLocalDays(after, offset);
     if (isUntilAckDay(config, date)) return date;
@@ -27,10 +41,15 @@ export function getEscalationPriority(index: number, count: number): number {
 
 function describeNextDate(config: UntilAckConfig, today: LocalDate): string {
   const next = getNextUntilAckDate(config, today);
-  return next ? `Próxima vez: ${formatLocalDateLabel(next)}.` : "Sem mais dias marcados.";
+  return next
+    ? `Próxima vez: ${formatLocalDateLabel(next)}.`
+    : "Sem mais dias marcados.";
 }
 
-function buildDayReminders(task: UntilAckTask, date: LocalDate): PlannedNotification[] {
+function buildDayReminders(
+  task: UntilAckTask,
+  date: LocalDate,
+): PlannedNotification[] {
   const times = task.config.reminderTimes;
   const expiresAt = getEndOfLocalDay(date);
   return times.map((time, index) => {
@@ -57,26 +76,42 @@ function buildDayReminders(task: UntilAckTask, date: LocalDate): PlannedNotifica
   });
 }
 
-function acknowledgeToday(task: UntilAckTask, state: EngineTaskState, now: Date): TaskOutcome {
+function acknowledgeToday(
+  task: UntilAckTask,
+  state: EngineTaskState,
+  now: Date,
+): TaskOutcome {
   const today = getLocalDate(now);
   if (!isUntilAckDay(task.config, today)) {
     return {
       patch: {},
       events: [],
-      result: { title: task.name, message: `Hoje não é dia. ${describeNextDate(task.config, today)}`, tone: "info" },
+      result: {
+        title: task.name,
+        message: `Hoje não é dia. ${describeNextDate(task.config, today)}`,
+        tone: "info",
+      },
     };
   }
   if (state.lastAckDate === today) {
     return {
       patch: {},
       events: [],
-      result: { title: task.name, message: `Já estava feito hoje. ${describeNextDate(task.config, today)}`, tone: "info" },
+      result: {
+        title: task.name,
+        message: `Já estava feito hoje. ${describeNextDate(task.config, today)}`,
+        tone: "info",
+      },
     };
   }
   return {
     patch: { lastAckDate: today, snoozedUntil: null },
     events: [{ type: "acked", data: { date: today } }],
-    result: { title: task.name, message: `Feito por hoje. ${describeNextDate(task.config, today)}`, tone: "done" },
+    result: {
+      title: task.name,
+      message: `Feito por hoje. ${describeNextDate(task.config, today)}`,
+      tone: "done",
+    },
   };
 }
 
@@ -85,7 +120,9 @@ export const untilAckHandler: KindHandler<"until_ack"> = {
     const today = getLocalDate(now);
     const days = [today, getNextUntilAckDate(task.config, today)].filter(
       (date): date is LocalDate =>
-        date !== null && isUntilAckDay(task.config, date) && state.lastAckDate !== date,
+        date !== null &&
+        isUntilAckDay(task.config, date) &&
+        state.lastAckDate !== date,
     );
     return days.flatMap((date) => buildDayReminders(task, date));
   },

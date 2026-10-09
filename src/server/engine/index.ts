@@ -8,8 +8,21 @@
 //     → or cancelled (no longer desired / superseded by a later row of the same task).
 // Every write is a single idempotent statement (Neon HTTP has no transactions).
 
-import { and, asc, eq, inArray, isNull, lte, notInArray, sql } from "drizzle-orm";
-import { syncAllCalendarEvents, syncAllCalendarEventsIfDue, syncTaskCalendarEvents } from "@/server/calendar";
+import {
+  and,
+  asc,
+  eq,
+  inArray,
+  isNull,
+  lte,
+  notInArray,
+  sql,
+} from "drizzle-orm";
+import {
+  syncAllCalendarEvents,
+  syncAllCalendarEventsIfDue,
+  syncTaskCalendarEvents,
+} from "@/server/calendar";
 import { getDb, schema, type Db } from "@/server/db";
 import { buildTask, getSettings, getTaskById } from "@/server/db/queries";
 import {
@@ -19,6 +32,7 @@ import {
   type Notifier,
   type SignedActionParams,
 } from "@/server/notify";
+import { isDemoMode } from "@/shared/demo";
 import type { ScanResult } from "@/shared/scan";
 import type { Settings } from "@/shared/settings";
 import type { TagAction } from "@/shared/tags";
@@ -27,7 +41,11 @@ import { getLocalTime } from "@/shared/time";
 import { selectRowsToSend } from "./catch-up";
 import { readOccurrenceFromKey } from "./keys";
 import { getKindHandler } from "./kinds/registry";
-import { EMPTY_TASK_STATE, type EngineTaskState, type TaskOutcome } from "./kinds/types";
+import {
+  EMPTY_TASK_STATE,
+  type EngineTaskState,
+  type TaskOutcome,
+} from "./kinds/types";
 import { buildDesiredNotifications } from "./plan";
 import { addMinutes } from "./time";
 
@@ -52,27 +70,55 @@ function buildEngineState(row: TaskStateRow | undefined): EngineTaskState {
 }
 
 async function getTaskState(db: Db, taskId: string): Promise<EngineTaskState> {
-  const [row] = await db.select().from(taskState).where(eq(taskState.taskId, taskId));
+  const [row] = await db
+    .select()
+    .from(taskState)
+    .where(eq(taskState.taskId, taskId));
   return buildEngineState(row);
 }
 
-async function saveTaskState(db: Db, taskId: string, patch: Partial<EngineTaskState>): Promise<void> {
+async function saveTaskState(
+  db: Db,
+  taskId: string,
+  patch: Partial<EngineTaskState>,
+): Promise<void> {
   if (Object.keys(patch).length === 0) return;
   await db
     .insert(taskState)
     .values({ taskId, ...patch })
-    .onConflictDoUpdate({ target: taskState.taskId, set: { ...patch, updatedAt: new Date() } });
+    .onConflictDoUpdate({
+      target: taskState.taskId,
+      set: { ...patch, updatedAt: new Date() },
+    });
 }
 
-async function insertEvents(db: Db, task: Task, tagId: string | null, outcome: TaskOutcome, now: Date) {
+async function insertEvents(
+  db: Db,
+  task: Task,
+  tagId: string | null,
+  outcome: TaskOutcome,
+  now: Date,
+) {
   if (outcome.events.length === 0) return;
   await db.insert(events).values(
-    outcome.events.map((event) => ({ at: now, type: event.type, taskId: task.id, tagId, data: event.data ?? {} })),
+    outcome.events.map((event) => ({
+      at: now,
+      type: event.type,
+      taskId: task.id,
+      tagId,
+      data: event.data ?? {},
+    })),
   );
 }
 
 /** Upserts the task's desired rows and cancels its pending rows that are no longer desired. */
-async function reconcileTask(db: Db, task: Task, state: EngineTaskState, settings: Settings, now: Date) {
+async function reconcileTask(
+  db: Db,
+  task: Task,
+  state: EngineTaskState,
+  settings: Settings,
+  now: Date,
+) {
   const desired = buildDesiredNotifications(task, state, { now, settings });
 
   if (desired.length > 0) {
@@ -110,7 +156,9 @@ async function reconcileTask(db: Db, task: Task, state: EngineTaskState, setting
         eq(notifications.taskId, task.id),
         isNull(notifications.sentAt),
         isNull(notifications.cancelledAt),
-        desiredKeys.length > 0 ? notInArray(notifications.dedupeKey, desiredKeys) : undefined,
+        desiredKeys.length > 0
+          ? notInArray(notifications.dedupeKey, desiredKeys)
+          : undefined,
       ),
     );
 }
@@ -120,10 +168,23 @@ function buildInfoResult(title: string, message: string): ScanResult {
 }
 
 /** Applies a handler outcome: state, history, then the task's schedule. */
-async function applyOutcome(db: Db, task: Task, state: EngineTaskState, outcome: TaskOutcome, tagId: string | null, now: Date) {
+async function applyOutcome(
+  db: Db,
+  task: Task,
+  state: EngineTaskState,
+  outcome: TaskOutcome,
+  tagId: string | null,
+  now: Date,
+) {
   await saveTaskState(db, task.id, outcome.patch);
   await insertEvents(db, task, tagId, outcome, now);
-  await reconcileTask(db, task, { ...state, ...outcome.patch }, await getSettings(db), now);
+  await reconcileTask(
+    db,
+    task,
+    { ...state, ...outcome.patch },
+    await getSettings(db),
+    now,
+  );
   // Never throws: Google problems end up in google_connection.last_error.
   await syncTaskCalendarEvents(task.id, now);
   return outcome.result;
@@ -142,17 +203,27 @@ export async function handleScan(input: {
 }): Promise<ScanResult> {
   const db = await getDb();
   const task = await getTaskById(db, input.taskId);
-  if (!task) return buildInfoResult("Tag sem tarefa", "A tarefa desta tag já não existe.");
-  if (!task.enabled) return buildInfoResult(task.name, "Esta tarefa está desativada.");
+  if (!task)
+    return buildInfoResult(
+      "Tag sem tarefa",
+      "A tarefa desta tag já não existe.",
+    );
+  if (!task.enabled)
+    return buildInfoResult(task.name, "Esta tarefa está desativada.");
   const state = await getTaskState(db, task.id);
   const handler = getKindHandler(task);
   const outcome =
-    input.action === "complete" ? handler.handleDone(task, state, input.now) : handler.handleScan(task, state, input.now);
+    input.action === "complete"
+      ? handler.handleDone(task, state, input.now)
+      : handler.handleScan(task, state, input.now);
   return applyOutcome(db, task, state, outcome, input.tagId, input.now);
 }
 
 /** "Feito" from a notification (or the app): completes / acknowledges / confirms the task. */
-export async function handleTaskDone(taskId: string, now: Date): Promise<ScanResult> {
+export async function handleTaskDone(
+  taskId: string,
+  now: Date,
+): Promise<ScanResult> {
   const db = await getDb();
   const task = await getTaskById(db, taskId);
   if (!task) return buildInfoResult("Tarefa", "A tarefa já não existe.");
@@ -162,7 +233,10 @@ export async function handleTaskDone(taskId: string, now: Date): Promise<ScanRes
 }
 
 /** "Adiar" from a notification: holds the task's notifications for `settings.defaults.snoozeMinutes`. */
-export async function handleTaskSnooze(taskId: string, now: Date): Promise<ScanResult> {
+export async function handleTaskSnooze(
+  taskId: string,
+  now: Date,
+): Promise<ScanResult> {
   const db = await getDb();
   const task = await getTaskById(db, taskId);
   if (!task) return buildInfoResult("Tarefa", "A tarefa já não existe.");
@@ -172,7 +246,11 @@ export async function handleTaskSnooze(taskId: string, now: Date): Promise<ScanR
   const outcome: TaskOutcome = {
     patch: { snoozedUntil: until },
     events: [{ type: "snoozed", data: { until: until.toISOString() } }],
-    result: { title: task.name, message: `Adiado. Volto a lembrar às ${getLocalTime(until)}.`, tone: "info" },
+    result: {
+      title: task.name,
+      message: `Adiado. Volto a lembrar às ${getLocalTime(until)}.`,
+      tone: "info",
+    },
   };
   return applyOutcome(db, task, state, outcome, null, now);
 }
@@ -186,21 +264,45 @@ export async function handleTaskSnooze(taskId: string, now: Date): Promise<ScanR
 export async function handleNotificationAction(
   params: SignedActionParams,
   now: Date,
-): Promise<{ ok: true; result: ScanResult } | { ok: false; status: 400 | 403; reason: string }> {
+): Promise<
+  | { ok: true; result: ScanResult }
+  | { ok: false; status: 400 | 403; reason: string }
+> {
+  if (isDemoMode()) return { ok: false, status: 403, reason: "demo" };
   const verified = verifyActionToken(params, now);
   if (!verified.ok) {
-    return { ok: false, status: verified.reason === "bad_action" || verified.reason === "malformed" ? 400 : 403, reason: verified.reason };
+    return {
+      ok: false,
+      status:
+        verified.reason === "bad_action" || verified.reason === "malformed"
+          ? 400
+          : 403,
+      reason: verified.reason,
+    };
   }
   const db = await getDb();
   const task = await getTaskById(db, verified.taskId);
-  if (!task) return { ok: true, result: buildInfoResult("Tarefa", "A tarefa já não existe.") };
+  if (!task)
+    return {
+      ok: true,
+      result: buildInfoResult("Tarefa", "A tarefa já não existe."),
+    };
   // Button from an older alert (yesterday's rubbish, a previous timer cycle…): change nothing.
-  const current = getKindHandler(task).getCurrentOccurrence(task, await getTaskState(db, task.id), now);
+  const current = getKindHandler(task).getCurrentOccurrence(
+    task,
+    await getTaskState(db, task.id),
+    now,
+  );
   if (current !== verified.occurrence) {
-    return { ok: true, result: buildInfoResult(task.name, "Este aviso já não está ativo.") };
+    return {
+      ok: true,
+      result: buildInfoResult(task.name, "Este aviso já não está ativo."),
+    };
   }
   const result =
-    verified.action === "done" ? await handleTaskDone(verified.taskId, now) : await handleTaskSnooze(verified.taskId, now);
+    verified.action === "done"
+      ? await handleTaskDone(verified.taskId, now)
+      : await handleTaskSnooze(verified.taskId, now);
   return { ok: true, result };
 }
 
@@ -215,9 +317,21 @@ export async function rescheduleTask(taskId: string, now: Date): Promise<void> {
     await db
       .update(notifications)
       .set({ cancelledAt: now })
-      .where(and(eq(notifications.taskId, taskId), isNull(notifications.sentAt), isNull(notifications.cancelledAt)));
+      .where(
+        and(
+          eq(notifications.taskId, taskId),
+          isNull(notifications.sentAt),
+          isNull(notifications.cancelledAt),
+        ),
+      );
   } else {
-    await reconcileTask(db, task, await getTaskState(db, task.id), await getSettings(db), now);
+    await reconcileTask(
+      db,
+      task,
+      await getTaskState(db, task.id),
+      await getSettings(db),
+      now,
+    );
   }
   await syncTaskCalendarEvents(taskId, now);
 }
@@ -230,10 +344,19 @@ export async function rescheduleAllTasks(now: Date): Promise<void> {
 }
 
 async function reconcileAllTasks(db: Db, settings: Settings, now: Date) {
-  const [taskRows, stateRows] = await Promise.all([db.select().from(tasks), db.select().from(taskState)]);
+  const [taskRows, stateRows] = await Promise.all([
+    db.select().from(tasks),
+    db.select().from(taskState),
+  ]);
   const statesById = new Map(stateRows.map((row) => [row.taskId, row]));
   for (const row of taskRows) {
-    await reconcileTask(db, buildTask(row), buildEngineState(statesById.get(row.id)), settings, now);
+    await reconcileTask(
+      db,
+      buildTask(row),
+      buildEngineState(statesById.get(row.id)),
+      settings,
+      now,
+    );
   }
 }
 
@@ -242,7 +365,13 @@ async function claimNotification(db: Db, id: string, now: Date) {
   const [claimed] = await db
     .update(notifications)
     .set({ sentAt: now, attempts: sql`${notifications.attempts} + 1` })
-    .where(and(eq(notifications.id, id), isNull(notifications.sentAt), isNull(notifications.cancelledAt)))
+    .where(
+      and(
+        eq(notifications.id, id),
+        isNull(notifications.sentAt),
+        isNull(notifications.cancelledAt),
+      ),
+    )
     .returning();
   return claimed ?? null;
 }
@@ -252,25 +381,43 @@ async function claimNotification(db: Db, id: string, now: Date) {
  * per task only the latest due row (older due rows are superseded), each claimed atomically.
  * `deps.notifier` overrides the configured provider (tests); null = sending disabled.
  */
-export async function runTick(now: Date, deps: { notifier?: Notifier | null } = {}): Promise<{ sent: number }> {
+export async function runTick(
+  now: Date,
+  deps: { notifier?: Notifier | null } = {},
+): Promise<{ sent: number }> {
   const result = await sendDueNotifications(now, deps);
   // Rolls the calendar horizon forward at most once per hour; never throws.
   await syncAllCalendarEventsIfDue(now);
   return result;
 }
 
-async function sendDueNotifications(now: Date, deps: { notifier?: Notifier | null }): Promise<{ sent: number }> {
+async function sendDueNotifications(
+  now: Date,
+  deps: { notifier?: Notifier | null },
+): Promise<{ sent: number }> {
   const db = await getDb();
   const settings = await getSettings(db);
   await reconcileAllTasks(db, settings, now);
+  // Public demo: rows are still planned (the UI shows the next alert) but stay pending, never
+  // sent — even with an injected notifier.
+  if (isDemoMode()) return { sent: 0 };
 
-  const notifier = deps.notifier === undefined ? createNotifierFromSettings(settings) : deps.notifier;
+  const notifier =
+    deps.notifier === undefined
+      ? createNotifierFromSettings(settings)
+      : deps.notifier;
   if (!notifier) return { sent: 0 };
 
   const due = await db
     .select()
     .from(notifications)
-    .where(and(lte(notifications.dueAt, now), isNull(notifications.sentAt), isNull(notifications.cancelledAt)))
+    .where(
+      and(
+        lte(notifications.dueAt, now),
+        isNull(notifications.sentAt),
+        isNull(notifications.cancelledAt),
+      ),
+    )
     .orderBy(asc(notifications.dueAt));
   const { send, supersede } = selectRowsToSend(due);
 
@@ -307,9 +454,21 @@ async function sendDueNotifications(now: Date, deps: { notifier?: Notifier | nul
       );
       sent++;
       const sentEvents = [
-        { at: now, type: "notification_sent" as const, taskId: claimed.taskId, data: { notificationId: claimed.id, kind: claimed.kind } },
+        {
+          at: now,
+          type: "notification_sent" as const,
+          taskId: claimed.taskId,
+          data: { notificationId: claimed.id, kind: claimed.kind },
+        },
         ...(claimed.kind === "timer_finished"
-          ? [{ at: now, type: "timer_finished" as const, taskId: claimed.taskId, data: { notificationId: claimed.id } }]
+          ? [
+              {
+                at: now,
+                type: "timer_finished" as const,
+                taskId: claimed.taskId,
+                data: { notificationId: claimed.id },
+              },
+            ]
           : []),
       ];
       await db.insert(events).values(sentEvents);
@@ -318,7 +477,11 @@ async function sendDueNotifications(now: Date, deps: { notifier?: Notifier | nul
       const givesUp = claimed.attempts >= MAX_SEND_ATTEMPTS;
       await db
         .update(notifications)
-        .set({ sentAt: null, lastError: message, cancelledAt: givesUp ? now : null })
+        .set({
+          sentAt: null,
+          lastError: message,
+          cancelledAt: givesUp ? now : null,
+        })
         .where(eq(notifications.id, claimed.id));
       await db.insert(events).values({
         at: now,

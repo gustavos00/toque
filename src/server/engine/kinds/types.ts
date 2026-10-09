@@ -1,5 +1,8 @@
 import type { EventType } from "@/shared/events";
-import type { NotificationKind, NotificationPayload } from "@/shared/notifications";
+import type {
+  NotificationKind,
+  NotificationPayload,
+} from "@/shared/notifications";
 import type { ScanResult } from "@/shared/scan";
 import type { Settings } from "@/shared/settings";
 import type { Task, TaskKind } from "@/shared/tasks";
@@ -53,12 +56,20 @@ export type KindHandler<K extends TaskKind> = {
    * Every notification that should exist for the task right now: still-relevant past
    * ones (so they are not cancelled, and so a late tick can catch up) plus upcoming ones.
    */
-  planNotifications(task: TaskOf<K>, state: EngineTaskState, ctx: PlanContext): PlannedNotification[];
+  planNotifications(
+    task: TaskOf<K>,
+    state: EngineTaskState,
+    ctx: PlanContext,
+  ): PlannedNotification[];
   /**
    * The occurrence notification buttons must match to act (same value as the third segment of
    * the row keys, see keys.ts); null = nothing can be acted on.
    */
-  getCurrentOccurrence(task: TaskOf<K>, state: EngineTaskState, now: Date): string | null;
+  getCurrentOccurrence(
+    task: TaskOf<K>,
+    state: EngineTaskState,
+    now: Date,
+  ): string | null;
   /** NFC tag scanned (a "start" tag). */
   handleScan(task: TaskOf<K>, state: EngineTaskState, now: Date): TaskOutcome;
   /** A "complete" tag scanned, or "Feito"/"Já tratei" tapped on a notification. */

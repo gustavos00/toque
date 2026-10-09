@@ -19,10 +19,17 @@ export function createTestTask<K extends Task["kind"]>(
   } as Extract<Task, { kind: K }>;
 }
 
-export function createTestState(patch: Partial<EngineTaskState> = {}): EngineTaskState {
+export function createTestState(
+  patch: Partial<EngineTaskState> = {},
+): EngineTaskState {
   return { ...EMPTY_TASK_STATE, ...patch };
 }
 
-export function createTestSettings(quietHours: Partial<Settings["quietHours"]> = {}): Settings {
-  return { ...DEFAULT_SETTINGS, quietHours: { ...DEFAULT_SETTINGS.quietHours, ...quietHours } };
+export function createTestSettings(
+  quietHours: Partial<Settings["quietHours"]> = {},
+): Settings {
+  return {
+    ...DEFAULT_SETTINGS,
+    quietHours: { ...DEFAULT_SETTINGS.quietHours, ...quietHours },
+  };
 }

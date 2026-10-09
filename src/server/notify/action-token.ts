@@ -8,9 +8,16 @@ export type NotificationAction = (typeof NOTIFICATION_ACTIONS)[number];
 export const ACTION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 /** Query parameters carried by a signed action URL. */
-export type SignedActionParams = { action: string; taskId: string; occurrence: string; exp: string; sig: string };
+export type SignedActionParams = {
+  action: string;
+  taskId: string;
+  occurrence: string;
+  exp: string;
+  sig: string;
+};
 
-type VerifyFailure = "bad_action" | "malformed" | "expired" | "bad_signature" | "no_secret";
+type VerifyFailure =
+  "bad_action" | "malformed" | "expired" | "bad_signature" | "no_secret";
 
 export function getActionSecret(): string | null {
   const secret = process.env.TOQUE_ACTION_SECRET;
@@ -36,7 +43,9 @@ export function signAction(
   exp: number,
   secret: string,
 ): string {
-  return createHmac("sha256", secret).update(`v2.${action}.${taskId}.${occurrence}.${exp}`).digest("base64url");
+  return createHmac("sha256", secret)
+    .update(`v2.${action}.${taskId}.${occurrence}.${exp}`)
+    .digest("base64url");
 }
 
 /**
@@ -56,12 +65,18 @@ export function createActionUrl(input: {
   url.searchParams.set("task", input.taskId);
   url.searchParams.set("occ", input.occurrence);
   url.searchParams.set("exp", String(exp));
-  url.searchParams.set("sig", signAction(input.action, input.taskId, input.occurrence, exp, input.secret));
+  url.searchParams.set(
+    "sig",
+    signAction(input.action, input.taskId, input.occurrence, exp, input.secret),
+  );
   return url.toString();
 }
 
 /** Pulls `{ action, taskId, occurrence, exp, sig }` from a request URL whose path ends in /api/actions/<action>. */
-export function readSignedActionParams(url: URL, action: string): SignedActionParams {
+export function readSignedActionParams(
+  url: URL,
+  action: string,
+): SignedActionParams {
   return {
     action,
     taskId: url.searchParams.get("task") ?? "",
@@ -76,18 +91,33 @@ export function verifyActionToken(
   params: SignedActionParams,
   now: Date,
   secret: string | null = getActionSecret(),
-): { ok: true; action: NotificationAction; taskId: string; occurrence: string } | { ok: false; reason: VerifyFailure } {
+):
+  | { ok: true; action: NotificationAction; taskId: string; occurrence: string }
+  | { ok: false; reason: VerifyFailure } {
   if (!secret) return { ok: false, reason: "no_secret" };
-  if (!isNotificationAction(params.action)) return { ok: false, reason: "bad_action" };
-  if (!/^\d{1,12}$/.test(params.exp) || !params.taskId || !params.sig || !OCCURRENCE_RE.test(params.occurrence)) {
+  if (!isNotificationAction(params.action))
+    return { ok: false, reason: "bad_action" };
+  if (
+    !/^\d{1,12}$/.test(params.exp) ||
+    !params.taskId ||
+    !params.sig ||
+    !OCCURRENCE_RE.test(params.occurrence)
+  ) {
     return { ok: false, reason: "malformed" };
   }
   const exp = Number(params.exp);
-  const expected = Buffer.from(signAction(params.action, params.taskId, params.occurrence, exp, secret));
+  const expected = Buffer.from(
+    signAction(params.action, params.taskId, params.occurrence, exp, secret),
+  );
   const given = Buffer.from(params.sig);
   if (expected.length !== given.length || !timingSafeEqual(expected, given)) {
     return { ok: false, reason: "bad_signature" };
   }
   if (exp * 1000 <= now.getTime()) return { ok: false, reason: "expired" };
-  return { ok: true, action: params.action, taskId: params.taskId, occurrence: params.occurrence };
+  return {
+    ok: true,
+    action: params.action,
+    taskId: params.taskId,
+    occurrence: params.occurrence,
+  };
 }

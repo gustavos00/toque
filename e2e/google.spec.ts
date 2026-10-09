@@ -7,7 +7,15 @@ import { logInViaApi } from "./helpers";
 // callback specs check the redirect and that nothing got connected.)
 const CALLBACK_URL = `http://localhost:${E2E_PORT}/api/google/callback`;
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-const NOT_CONNECTED = { connected: false, email: null, calendarName: null, lastError: null, lastSyncAt: null };
+const NOT_CONNECTED = {
+  connected: false,
+  email: null,
+  calendarName: null,
+  lastError: null,
+  lastSyncAt: null,
+  demo: false,
+  demoResetAt: null,
+};
 
 function getRedirectPath(location: string | undefined) {
   const url = new URL(location ?? "", "http://irrelevante");

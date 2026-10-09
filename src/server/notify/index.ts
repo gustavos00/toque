@@ -1,8 +1,20 @@
-import type { NotificationKind, NotificationPayload } from "@/shared/notifications";
+import type {
+  NotificationKind,
+  NotificationPayload,
+} from "@/shared/notifications";
+import { isDemoMode } from "@/shared/demo";
 import { DEFAULT_SETTINGS, type Settings } from "@/shared/settings";
-import { ACTION_TOKEN_TTL_MS, createActionUrl, getActionSecret } from "./action-token";
+import {
+  ACTION_TOKEN_TTL_MS,
+  createActionUrl,
+  getActionSecret,
+} from "./action-token";
 import { createNtfyNotifier } from "./ntfy";
-import type { NotificationButton, Notifier, OutgoingNotification } from "./types";
+import type {
+  NotificationButton,
+  Notifier,
+  OutgoingNotification,
+} from "./types";
 
 export type { Notifier, OutgoingNotification } from "./types";
 export {
@@ -30,14 +42,24 @@ export function getAppBaseUrl(): string | null {
  * catch-up rule sends the latest one once a topic exists).
  * Settings win when set; env vars are the fallback: topic = settings || NTFY_TOPIC,
  * server = settings (if changed from the built-in https://ntfy.sh) || NTFY_BASE_URL || https://ntfy.sh.
- * NTFY_TOKEN is env-only (secret).
+ * NTFY_TOKEN is env-only (secret). Always null in demo mode.
  */
-export function createNotifierFromSettings(settings: Settings): Notifier | null {
+export function createNotifierFromSettings(
+  settings: Settings,
+): Notifier | null {
+  // Public demo: never send to ntfy, whatever the settings or env say.
+  if (isDemoMode()) return null;
   const topic = settings.ntfy.topic || process.env.NTFY_TOPIC?.trim();
   if (!topic) return null;
-  const configuredServer = settings.ntfy.server !== DEFAULT_SETTINGS.ntfy.server ? settings.ntfy.server : null;
+  const configuredServer =
+    settings.ntfy.server !== DEFAULT_SETTINGS.ntfy.server
+      ? settings.ntfy.server
+      : null;
   return createNtfyNotifier({
-    baseUrl: configuredServer || process.env.NTFY_BASE_URL?.trim() || DEFAULT_SETTINGS.ntfy.server,
+    baseUrl:
+      configuredServer ||
+      process.env.NTFY_BASE_URL?.trim() ||
+      DEFAULT_SETTINGS.ntfy.server,
     topic,
     token: process.env.NTFY_TOKEN?.trim() || null,
   });
@@ -70,7 +92,14 @@ export function buildOutgoingNotification(input: {
     if (payload.actions.includes("done")) {
       buttons.push({
         label: input.kind === "timer_forgotten" ? "Já tratei" : "Feito",
-        url: createActionUrl({ baseUrl, action: "done", taskId, occurrence, expiresAt, secret }),
+        url: createActionUrl({
+          baseUrl,
+          action: "done",
+          taskId,
+          occurrence,
+          expiresAt,
+          secret,
+        }),
         method: "POST",
         clear: true,
       });
@@ -78,7 +107,14 @@ export function buildOutgoingNotification(input: {
     if (payload.actions.includes("snooze")) {
       buttons.push({
         label: formatSnoozeLabel(input.snoozeMinutes),
-        url: createActionUrl({ baseUrl, action: "snooze", taskId, occurrence, expiresAt, secret }),
+        url: createActionUrl({
+          baseUrl,
+          action: "snooze",
+          taskId,
+          occurrence,
+          expiresAt,
+          secret,
+        }),
         method: "POST",
         clear: true,
       });
@@ -90,7 +126,8 @@ export function buildOutgoingNotification(input: {
     message: payload.message,
     priority: payload.priority,
     tags: payload.tags,
-    clickUrl: baseUrl && payload.actions.includes("open") ? `${baseUrl}/` : null,
+    clickUrl:
+      baseUrl && payload.actions.includes("open") ? `${baseUrl}/` : null,
     buttons,
   };
 }

@@ -204,6 +204,8 @@ describe("status, resync and disconnect", () => {
       await statusRoute.GET(createRequest("/api/google/status"))
     ).json();
     expect(empty).toEqual({
+      demo: false,
+      demoResetAt: null,
       configured: true,
       connected: false,
       email: null,

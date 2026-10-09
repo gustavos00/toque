@@ -1,23 +1,44 @@
-import { getNextRecurringOccurrence, getRecurringDueAt } from "@/shared/schedule";
+import {
+  getNextRecurringOccurrence,
+  getRecurringDueAt,
+} from "@/shared/schedule";
 import type { RecurringConfig } from "@/shared/tasks";
-import { addLocalDays, createLocalInstant, getIsoWeekday, getLocalDate, type LocalDate } from "@/shared/time";
+import {
+  addLocalDays,
+  createLocalInstant,
+  getIsoWeekday,
+  getLocalDate,
+  type LocalDate,
+} from "@/shared/time";
 import { buildNotificationKey } from "../keys";
 import { formatLocalDateLabel, getLocalDaysBetween } from "../time";
-import type { KindHandler, PlannedNotification, TaskOf, TaskOutcome } from "./types";
+import type {
+  KindHandler,
+  PlannedNotification,
+  TaskOf,
+  TaskOutcome,
+} from "./types";
 
 type RecurringTask = TaskOf<"recurring">;
 
 function describeSchedule(config: RecurringConfig): string {
   if (config.mode === "weekdays") return "Hoje é dia";
-  return config.everyDays === 1 ? "Está na hora (todos os dias)" : `Está na hora (a cada ${config.everyDays} dias)`;
+  return config.everyDays === 1
+    ? "Está na hora (todos os dias)"
+    : `Está na hora (a cada ${config.everyDays} dias)`;
 }
 
 /** Is `date` itself an occurrence (weekdays mode)? Such a day gets a "due" row, not an overdue one. */
 function isOccurrenceDay(config: RecurringConfig, date: LocalDate): boolean {
-  return config.mode === "weekdays" && config.weekdays.includes(getIsoWeekday(date));
+  return (
+    config.mode === "weekdays" && config.weekdays.includes(getIsoWeekday(date))
+  );
 }
 
-function buildDueRow(task: RecurringTask, date: LocalDate): PlannedNotification {
+function buildDueRow(
+  task: RecurringTask,
+  date: LocalDate,
+): PlannedNotification {
   return {
     key: buildNotificationKey("recurring", task.id, date, "due"),
     kind: "recurring_due",
@@ -34,7 +55,11 @@ function buildDueRow(task: RecurringTask, date: LocalDate): PlannedNotification 
 }
 
 function completeTask(task: RecurringTask, now: Date): TaskOutcome {
-  const nextDue = getNextRecurringOccurrence(task.config, { lastDoneAt: now, createdAt: task.createdAt }, now);
+  const nextDue = getNextRecurringOccurrence(
+    task.config,
+    { lastDoneAt: now, createdAt: task.createdAt },
+    now,
+  );
   return {
     patch: { lastDoneAt: now, snoozedUntil: null },
     events: [{ type: "done" }],
@@ -55,7 +80,11 @@ export const recurringHandler: KindHandler<"recurring"> = {
    * Only today's and tomorrow's rows are planned; ticks roll it forward.
    */
   planNotifications(task, state, { now }) {
-    const dueAt = getRecurringDueAt(task.config, { lastDoneAt: state.lastDoneAt, createdAt: task.createdAt }, now);
+    const dueAt = getRecurringDueAt(
+      task.config,
+      { lastDoneAt: state.lastDoneAt, createdAt: task.createdAt },
+      now,
+    );
     const dueDate = getLocalDate(dueAt);
     const today = getLocalDate(now);
     const rows: PlannedNotification[] = [];
@@ -71,7 +100,13 @@ export const recurringHandler: KindHandler<"recurring"> = {
         continue;
       }
       rows.push({
-        key: buildNotificationKey("recurring", task.id, dueDate, "overdue", date),
+        key: buildNotificationKey(
+          "recurring",
+          task.id,
+          dueDate,
+          "overdue",
+          date,
+        ),
         kind: "recurring_overdue",
         dueAt: createLocalInstant(date, task.config.reminderTime),
         expiresAt: null,
@@ -89,7 +124,13 @@ export const recurringHandler: KindHandler<"recurring"> = {
 
   /** The occurrence is the local date of the current (undone) due occurrence. */
   getCurrentOccurrence: (task, state, now) =>
-    getLocalDate(getRecurringDueAt(task.config, { lastDoneAt: state.lastDoneAt, createdAt: task.createdAt }, now)),
+    getLocalDate(
+      getRecurringDueAt(
+        task.config,
+        { lastDoneAt: state.lastDoneAt, createdAt: task.createdAt },
+        now,
+      ),
+    ),
   handleScan: (task, _state, now) => completeTask(task, now),
   handleDone: (task, _state, now) => completeTask(task, now),
 };

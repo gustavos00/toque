@@ -13,6 +13,8 @@ const baseURL = `http://localhost:${E2E_PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  // The demo specs need a demo build: playwright.demo.config.ts.
+  testIgnore: "demo/**",
   fullyParallel: false,
   // One in-memory DB shared by all specs; keep them in one worker so the
   // single-user state stays predictable.

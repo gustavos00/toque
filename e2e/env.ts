@@ -37,3 +37,17 @@ export const E2E_NO_GOOGLE_ENV: Record<string, string> = {
   TOQUE_ENCRYPTION_KEY: "isto-nao-e-uma-chave-de-32-bytes",
   TOQUE_PUBLIC_URL: `http://localhost:${E2E_NO_GOOGLE_PORT}`,
 };
+
+/** Demo build (NEXT_PUBLIC_TOQUE_DEMO=1): its own port and its own distDir. */
+export const E2E_DEMO_PORT = E2E_PORT + 4;
+
+export const E2E_DEMO_ENV: Record<string, string> = {
+  ...E2E_ENV,
+  NEXT_PUBLIC_TOQUE_DEMO: "1",
+  // NEXT_PUBLIC_ is inlined at build time, so the demo needs its own build;
+  // keep it out of .next (next.config.ts reads TOQUE_DIST_DIR).
+  TOQUE_DIST_DIR: ".next-demo",
+  // Must be ignored in demo mode: only "demo" logs in.
+  TOQUE_PASSWORD: "nao-e-esta-na-demo",
+  TOQUE_PUBLIC_URL: `http://localhost:${E2E_DEMO_PORT}`,
+};

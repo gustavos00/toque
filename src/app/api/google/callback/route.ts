@@ -1,12 +1,14 @@
 // GET /api/google/callback?code=&state= — Google redirects here after
 // consent. No session (the PWA and Safari may not share cookies): the signed,
 // 10-minute `state` from /api/google/connect is the check. Stores the tokens,
-// creates the "Toque" calendar, then 302 → /definicoes?google=ok|erro|config.
+// creates the "Toque" calendar, then 302 → /definicoes?google=ok|erro|config
+// (or =demo on the public demo, without touching anything).
 // The first full sync runs after the response (after()), best effort.
 
 import { after, NextResponse, type NextRequest } from "next/server";
 import { ensureToqueCalendar, syncAllCalendarEvents } from "@/server/calendar";
 import { getDb } from "@/server/db";
+import { isDemoMode } from "@/shared/demo";
 import {
   exchangeGoogleCode,
   getGoogleRedirectUri,
@@ -17,7 +19,7 @@ import {
   setGoogleLastError,
 } from "@/server/google";
 
-type Outcome = "ok" | "erro" | "config";
+type Outcome = "ok" | "erro" | "config" | "demo";
 
 function redirectToSettings(request: NextRequest, outcome: Outcome) {
   return NextResponse.redirect(
@@ -27,6 +29,8 @@ function redirectToSettings(request: NextRequest, outcome: Outcome) {
 }
 
 export async function GET(request: NextRequest) {
+  // The demo never exchanges codes or stores tokens.
+  if (isDemoMode()) return redirectToSettings(request, "demo");
   const params = request.nextUrl.searchParams;
   if (!(await isGoogleStateValid(params.get("state")))) {
     return redirectToSettings(request, "erro");

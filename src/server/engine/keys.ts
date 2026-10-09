@@ -3,7 +3,12 @@
  * occurrence the row belongs to (local date for until_ack/recurring, cycle start ms for timers),
  * so the sender can bind notification buttons to it. Occurrences never contain ":".
  */
-export function buildNotificationKey(prefix: string, taskId: string, occurrence: string, ...rest: (string | number)[]): string {
+export function buildNotificationKey(
+  prefix: string,
+  taskId: string,
+  occurrence: string,
+  ...rest: (string | number)[]
+): string {
   return [prefix, taskId, occurrence, ...rest].join(":");
 }
 

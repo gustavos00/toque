@@ -1,5 +1,10 @@
 /** A button on the notification that makes an HTTP request (ntfy "http" action). */
-export type NotificationButton = { label: string; url: string; method: "POST" | "GET"; clear: boolean };
+export type NotificationButton = {
+  label: string;
+  url: string;
+  method: "POST" | "GET";
+  clear: boolean;
+};
 
 /** Everything a provider needs to show one notification. No secrets in the text fields. */
 export type OutgoingNotification = {

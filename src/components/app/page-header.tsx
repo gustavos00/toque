@@ -4,6 +4,10 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { formatDemoResetIn, getNextDemoReset } from "@/lib/demo";
+import { useNow } from "@/lib/hooks/use-now";
+import { useGoogleStatus } from "@/lib/queries";
+import { isDemoMode } from "@/shared/demo";
 
 type PageHeaderProps = {
   title: string;
@@ -17,12 +21,39 @@ type PageHeaderProps = {
   compact?: boolean;
 };
 
+/** Discreet marker so visitors of the public demo know it isn't a real account. */
+function DemoPill() {
+  return (
+    <span
+      role="note"
+      title="Versão de demonstração: os dados são de exemplo e o ntfy e o Google estão desligados."
+      className="ml-2 rounded-full bg-warning/12 px-2.5 py-0.5 text-[12px] font-semibold tracking-wide text-warning"
+    >
+      Demonstração
+    </span>
+  );
+}
+
+/** "Os dados são apagados a cada 5 minutos · próxima limpeza daqui a 3 min" (live). */
+function DemoResetNote() {
+  const now = useNow(1000);
+  const { data: status } = useGoogleStatus();
+  const demoResetAt = (status as { demoResetAt?: string | null } | undefined)?.demoResetAt;
+  return (
+    <p className="mt-1 text-[13px] text-muted-foreground" aria-live="off">
+      Os dados são apagados a cada 5 minutos
+      {now && <> · próxima limpeza {formatDemoResetIn(getNextDemoReset(now, demoResetAt), now)}</>}
+    </p>
+  );
+}
+
 /**
  * iOS navigation bar: a large title that scrolls away, and a translucent
  * sticky bar that shows the small title once the large one is gone.
  */
 export function PageHeader({ title, eyebrow, action, back, compact = false }: PageHeaderProps) {
   const largeTitleRef = useRef<HTMLHeadingElement>(null);
+  const isDemo = isDemoMode();
   const [isCollapsed, setIsCollapsed] = useState(compact);
 
   useEffect(() => {
@@ -46,7 +77,8 @@ export function PageHeader({ title, eyebrow, action, back, compact = false }: Pa
         )}
       >
         <div className="relative flex h-11 items-center justify-between px-2">
-          <div className="flex min-w-0 flex-1 items-center">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {isDemo && !back && <DemoPill />}
             {back && (
               <Link
                 href={back.href}
@@ -66,7 +98,10 @@ export function PageHeader({ title, eyebrow, action, back, compact = false }: Pa
           >
             {title}
           </p>
-          <div className="flex flex-1 items-center justify-end pr-2">{action}</div>
+          <div className="flex flex-1 items-center justify-end gap-1 pr-2">
+            {isDemo && back && <DemoPill />}
+            {action}
+          </div>
         </div>
       </div>
       {!compact && (
@@ -77,6 +112,7 @@ export function PageHeader({ title, eyebrow, action, back, compact = false }: Pa
           <h1 ref={largeTitleRef} className="text-[34px] leading-tight font-bold tracking-tight">
             {title}
           </h1>
+          {isDemo && <DemoResetNote />}
         </div>
       )}
     </>

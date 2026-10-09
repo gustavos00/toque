@@ -1,9 +1,19 @@
 // Pure rules: which Google Calendar events a task should have right now.
 import { createHash } from "node:crypto";
 import type { EngineTaskState } from "@/server/engine/kinds/types";
-import { getNextRecurringOccurrence, getRecurringDueAt, getTimerPhase, isUntilAckDay } from "@/shared/schedule";
+import {
+  getNextRecurringOccurrence,
+  getRecurringDueAt,
+  getTimerPhase,
+  isUntilAckDay,
+} from "@/shared/schedule";
 import type { Task } from "@/shared/tasks";
-import { addLocalDays, createLocalInstant, getLocalDate, TIMEZONE } from "@/shared/time";
+import {
+  addLocalDays,
+  createLocalInstant,
+  getLocalDate,
+  TIMEZONE,
+} from "@/shared/time";
 
 /** Rolling horizon for until_ack / recurring events, starting today. */
 export const CALENDAR_HORIZON_DAYS = 28;
@@ -32,7 +42,13 @@ export type DesiredCalendarEvent = {
   hash: string;
 };
 
-function buildEvent(task: Task, occurrenceKey: string, start: Date, end: Date, description: string): DesiredCalendarEvent {
+function buildEvent(
+  task: Task,
+  occurrenceKey: string,
+  start: Date,
+  end: Date,
+  description: string,
+): DesiredCalendarEvent {
   const body: CalendarEventBody = {
     summary: task.name,
     description,
@@ -40,14 +56,27 @@ function buildEvent(task: Task, occurrenceKey: string, start: Date, end: Date, d
     end: { dateTime: end.toISOString(), timeZone: TIMEZONE },
     // User decision: the calendar never notifies; ntfy does.
     reminders: { useDefault: false, overrides: [] },
-    extendedProperties: { private: { toqueTaskId: task.id, toqueOccurrence: occurrenceKey } },
+    extendedProperties: {
+      private: { toqueTaskId: task.id, toqueOccurrence: occurrenceKey },
+    },
   };
   const hash = createHash("sha256").update(JSON.stringify(body)).digest("hex");
   return { occurrenceKey, start, end, body, hash };
 }
 
-function buildShortEvent(task: Task, occurrenceKey: string, start: Date, description: string) {
-  return buildEvent(task, occurrenceKey, start, new Date(start.getTime() + CALENDAR_EVENT_MINUTES * 60_000), description);
+function buildShortEvent(
+  task: Task,
+  occurrenceKey: string,
+  start: Date,
+  description: string,
+) {
+  return buildEvent(
+    task,
+    occurrenceKey,
+    start,
+    new Date(start.getTime() + CALENDAR_EVENT_MINUTES * 60_000),
+    description,
+  );
 }
 
 /**
@@ -55,7 +84,11 @@ function buildShortEvent(task: Task, occurrenceKey: string, start: Date, descrip
  * today is never deleted by the sync (acked days were deleted on their own day). Everything
  * else that is no longer desired is deleted; a disabled or deleted task loses all its events.
  */
-export function isPastEventKept(task: Task | null, occurrenceKey: string, now: Date): boolean {
+export function isPastEventKept(
+  task: Task | null,
+  occurrenceKey: string,
+  now: Date,
+): boolean {
   if (!task?.enabled || task.kind !== "until_ack") return false;
   return occurrenceKey.slice("until_ack:".length) < getLocalDate(now);
 }
@@ -70,17 +103,33 @@ export function isPastEventKept(task: Task | null, occurrenceKey: string, now: D
  *   Interval mode projects later occurrences as if each were done on its due day.
  * - disabled task: none.
  */
-export function buildDesiredCalendarEvents(task: Task, state: EngineTaskState, now: Date): DesiredCalendarEvent[] {
+export function buildDesiredCalendarEvents(
+  task: Task,
+  state: EngineTaskState,
+  now: Date,
+): DesiredCalendarEvent[] {
   if (!task.enabled) return [];
   const today = getLocalDate(now);
-  const horizonEnd = createLocalInstant(addLocalDays(today, CALENDAR_HORIZON_DAYS), "00:00");
+  const horizonEnd = createLocalInstant(
+    addLocalDays(today, CALENDAR_HORIZON_DAYS),
+    "00:00",
+  );
 
   switch (task.kind) {
     case "timer": {
       const { timerStartedAt: startedAt, timerEndsAt: endsAt } = state;
       const phase = getTimerPhase(state, now);
-      if (!startedAt || !endsAt || (phase !== "running" && phase !== "ready")) return [];
-      return [buildEvent(task, `timer:${startedAt.getTime()}`, startedAt, endsAt, "A decorrer (Toque).")];
+      if (!startedAt || !endsAt || (phase !== "running" && phase !== "ready"))
+        return [];
+      return [
+        buildEvent(
+          task,
+          `timer:${startedAt.getTime()}`,
+          startedAt,
+          endsAt,
+          "A decorrer (Toque).",
+        ),
+      ];
     }
 
     case "until_ack": {
@@ -88,21 +137,41 @@ export function buildDesiredCalendarEvents(task: Task, state: EngineTaskState, n
       const events: DesiredCalendarEvent[] = [];
       for (let offset = 0; offset < CALENDAR_HORIZON_DAYS; offset++) {
         const date = addLocalDays(today, offset);
-        if (!isUntilAckDay(task.config, date) || state.lastAckDate === date) continue;
-        events.push(buildShortEvent(task, `until_ack:${date}`, createLocalInstant(date, firstTime), "Toca na tag quando estiver feito (Toque)."));
+        if (!isUntilAckDay(task.config, date) || state.lastAckDate === date)
+          continue;
+        events.push(
+          buildShortEvent(
+            task,
+            `until_ack:${date}`,
+            createLocalInstant(date, firstTime),
+            "Toca na tag quando estiver feito (Toque).",
+          ),
+        );
       }
       return events;
     }
 
     case "recurring": {
-      const history = { lastDoneAt: state.lastDoneAt, createdAt: task.createdAt };
+      const history = {
+        lastDoneAt: state.lastDoneAt,
+        createdAt: task.createdAt,
+      };
       const events: DesiredCalendarEvent[] = [];
       let occurrence = getRecurringDueAt(task.config, history, now);
       for (let i = 0; i < MAX_OCCURRENCES && occurrence < horizonEnd; i++) {
         events.push(
-          buildShortEvent(task, `recurring:${getLocalDate(occurrence)}`, occurrence, "Toca na tag quando estiver feito (Toque)."),
+          buildShortEvent(
+            task,
+            `recurring:${getLocalDate(occurrence)}`,
+            occurrence,
+            "Toca na tag quando estiver feito (Toque).",
+          ),
         );
-        occurrence = getNextRecurringOccurrence(task.config, history, occurrence);
+        occurrence = getNextRecurringOccurrence(
+          task.config,
+          history,
+          occurrence,
+        );
       }
       return events;
     }

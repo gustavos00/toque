@@ -5,9 +5,11 @@
 import { eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { getDb } from "@/server/db";
+import { maybeResetDemoData } from "@/server/db/demo";
 import { getTagByToken, getTaskById } from "@/server/db/queries";
 import { events, tags } from "@/server/db/schema";
 import { handleScan } from "@/server/engine";
+import { isDemoMode } from "@/shared/demo";
 import { renderScanPage } from "./render-page";
 
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
@@ -18,6 +20,7 @@ export async function GET(
 ) {
   const { token } = await ctx.params;
   const db = await getDb();
+  await maybeResetDemoData(db, new Date());
   const tag = TOKEN_PATTERN.test(token) ? await getTagByToken(db, token) : null;
   if (!tag) {
     return renderScanPage(
@@ -39,7 +42,10 @@ export async function GET(
     tagId: tag.id,
     data: {
       action: tag.action,
-      userAgent: request.headers.get("user-agent") ?? undefined,
+      // No device details on the public demo.
+      userAgent: isDemoMode()
+        ? undefined
+        : (request.headers.get("user-agent") ?? undefined),
     },
   });
 

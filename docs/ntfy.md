@@ -10,7 +10,7 @@ O Toque não envia notificações push diretamente: publica mensagens num **tóp
 
 ## 2. Escolher um tópico aleatório
 
-No ntfy.sh público **não há palavras-passe**: quem souber o nome do tópico consegue ler as suas notificações e enviar mensagens falsas para o seu telemóvel. O nome do tópico é, por isso, **o único segredo**. Tem de ser longo e impossível de adivinhar — nada de `toque`, `casa-gustavo` ou parecido.
+No ntfy.sh público **não há palavras-passe**: quem souber o nome do tópico consegue ler as suas notificações e enviar mensagens falsas para o seu telemóvel. O nome do tópico é, por isso, **o único segredo**. Tem de ser longo e impossível de adivinhar — nada de `toque`, `casa-<o-seu-nome>` ou parecido.
 
 Gere um no Mac/Linux:
 

@@ -2,12 +2,16 @@
 // No Node-only imports here so it can run anywhere (proxy, route handlers).
 
 import { jwtVerify, SignJWT } from "jose";
+import { isDemoMode } from "@/shared/demo";
 
 export const SESSION_COOKIE_NAME = "toque_session";
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 90; // 90 days
 
 const SESSION_SUBJECT = "owner";
 const DEV_SESSION_SECRET = "toque-dev-only-session-secret-change-me";
+// The demo's password is public, so its sessions protect nothing secret;
+// a built-in key lets the demo deploy with zero secrets.
+const DEMO_SESSION_SECRET = "toque-public-demo-session-secret-not-private";
 const MIN_SECRET_LENGTH = 32;
 
 function isProduction() {
@@ -17,12 +21,13 @@ function isProduction() {
 /**
  * The signing key (also used for other short-lived signed values, such as
  * the Google OAuth state). In production TOQUE_SESSION_SECRET (≥ 32 chars)
- * is required.
+ * is required — except on the public demo, which falls back to a built-in key.
  */
 export function getSessionKey(): Uint8Array {
   const secret = process.env.TOQUE_SESSION_SECRET;
   if (secret && secret.length >= MIN_SECRET_LENGTH)
     return new TextEncoder().encode(secret);
+  if (isDemoMode()) return new TextEncoder().encode(DEMO_SESSION_SECRET);
   if (isProduction()) {
     throw new Error(
       `TOQUE_SESSION_SECRET must be set (at least ${MIN_SECRET_LENGTH} characters).`,
