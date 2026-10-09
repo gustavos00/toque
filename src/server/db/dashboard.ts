@@ -12,7 +12,7 @@ import {
 import { getLocalDate } from "@/shared/time";
 import { listEvents } from "./history";
 import type { Db } from "./index";
-import { buildTask, buildTaskDto } from "./queries";
+import { buildTask, buildTaskDto, getTagsByTaskId } from "./queries";
 import { tasks, taskState } from "./schema";
 
 const RECENT_EVENTS_LIMIT = 10;
@@ -25,13 +25,14 @@ const TIMER_PHASE_ORDER: Record<TimerPhase, number> = {
 
 export async function buildDashboard(db: Db, now: Date): Promise<DashboardDto> {
   const today = getLocalDate(now);
-  const [rows, recentEvents] = await Promise.all([
+  const [rows, recentEvents, tagsByTask] = await Promise.all([
     db
       .select({ task: tasks, state: taskState })
       .from(tasks)
       .leftJoin(taskState, eq(taskState.taskId, tasks.id))
       .where(eq(tasks.enabled, true)),
     listEvents(db, { limit: RECENT_EVENTS_LIMIT }),
+    getTagsByTaskId(db),
   ]);
 
   const dashboard: DashboardDto = {
@@ -46,7 +47,7 @@ export async function buildDashboard(db: Db, now: Date): Promise<DashboardDto> {
   for (const row of rows) {
     const task = buildTask(row.task);
     const state = row.state;
-    const dto = buildTaskDto(task, state);
+    const dto = buildTaskDto(task, state, tagsByTask.get(task.id) ?? []);
     if (task.kind === "timer") {
       const phase = getTimerPhase(state, now);
       dashboard.timers.push({

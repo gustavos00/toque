@@ -28,42 +28,60 @@ const ACTION_OPTIONS = [
   { value: "complete", label: "Marca como tratada" },
 ] as const satisfies readonly { value: TagAction; label: string }[];
 
-/** Short badge text for a tag's action. */
-export function formatTagAction(action: TagAction) {
-  return action === "complete" ? "tratada" : "inicia";
-}
-
 type TagSheetProps = {
   /** null = create a new tag. */
   tag: TagDto | null;
   tasks: TaskDto[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Task pre-selected when creating a tag (e.g. from a task's page). */
+  defaultTaskId?: string | null;
 };
 
 /** Bottom sheet to create or edit a tag (label, task, action), copy its URL, delete it. */
-export function TagSheet({ tag, tasks, open, onOpenChange }: TagSheetProps) {
+export function TagSheet({ tag, tasks, open, onOpenChange, defaultTaskId = null }: TagSheetProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="bg-background">
-        {open && <TagForm key={tag?.id ?? "new"} tag={tag} tasks={tasks} onDone={() => onOpenChange(false)} />}
+        {open && (
+          <TagForm
+            key={tag?.id ?? "new"}
+            tag={tag}
+            tasks={tasks}
+            defaultTaskId={defaultTaskId}
+            onDone={() => onOpenChange(false)}
+          />
+        )}
       </DrawerContent>
     </Drawer>
   );
 }
 
-function TagForm({ tag, tasks, onDone }: { tag: TagDto | null; tasks: TaskDto[]; onDone: () => void }) {
+function TagForm({
+  tag,
+  tasks,
+  defaultTaskId,
+  onDone,
+}: {
+  tag: TagDto | null;
+  tasks: TaskDto[];
+  defaultTaskId: string | null;
+  onDone: () => void;
+}) {
   const { mutate } = useSWRConfig();
   const [label, setLabel] = useState(tag?.label ?? "");
-  const [taskId, setTaskId] = useState<string>(tag?.taskId ?? "");
+  const [taskId, setTaskId] = useState<string>(tag?.taskId ?? defaultTaskId ?? "");
   const [action, setAction] = useState<TagAction>(tag?.action ?? "start");
   const [isSaving, setIsSaving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const selectedTask = tasks.find((task) => task.id === taskId);
   const isTimer = selectedTask?.kind === "timer";
 
+  /** Tags show on tasks too (TaskDto.tags), so refresh both lists. */
   function refreshTags() {
     void mutate(API_PATHS.tags);
+    void mutate(API_PATHS.tasks);
+    void mutate((key) => typeof key === "string" && key.startsWith(`${API_PATHS.tasks}/`));
   }
 
   async function submitTag(event: FormEvent) {

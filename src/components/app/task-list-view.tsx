@@ -5,13 +5,14 @@ import { ListChecks, Plus } from "lucide-react";
 import { TASK_KINDS, type TaskDto } from "@/shared";
 import { Button } from "@/components/ui/button";
 import { useNow } from "@/lib/hooks/use-now";
-import { useTags, useTasks } from "@/lib/queries";
+import { useTasks } from "@/lib/queries";
 import { getTaskRemaining, TONE_TEXT } from "@/lib/remaining";
 import { cn } from "@/lib/utils";
 import { describeTaskSchedule, TASK_KIND_META } from "@/lib/task-kinds";
 import { EmptyState } from "./empty-state";
 import { ListRow, ListSection } from "./grouped-list";
 import { PageHeader } from "./page-header";
+import { TagChips } from "./tag-chips";
 import { ListSkeleton, LoadError } from "./status";
 import { TaskIcon } from "./task-icon";
 
@@ -38,11 +39,6 @@ function RemainingLabel({ task, now }: { task: TaskDto; now: Date }) {
 export function TaskListView() {
   const { data: tasks, error, isLoading, mutate } = useTasks();
   const now = useNow(15_000);
-  const { data: tags } = useTags();
-
-  function countTags(task: TaskDto) {
-    return tags?.filter((tag) => tag.taskId === task.id).length ?? 0;
-  }
 
   return (
     <>
@@ -74,7 +70,7 @@ export function TaskListView() {
           return (
             <ListSection key={kind} title={TASK_KIND_META[kind].label}>
               {ofKind.map((task) => {
-                const tagCount = countTags(task);
+                const taskTags = task.tags;
                 return (
                   <ListRow
                     key={task.id}
@@ -82,9 +78,14 @@ export function TaskListView() {
                     icon={<TaskIcon kind={task.kind} muted={!task.enabled} />}
                     title={<span className={task.enabled ? undefined : "text-muted-foreground"}>{task.name}</span>}
                     subtitle={
-                      task.enabled
-                        ? `${describeTaskSchedule(task)}${tags ? ` · ${tagCount === 0 ? "sem tag" : tagCount === 1 ? "1 tag" : `${tagCount} tags`}` : ""}`
-                        : "Desativada"
+                      <>
+                        <span className="block">{task.enabled ? describeTaskSchedule(task) : "Desativada"}</span>
+                        {taskTags && (
+                          <span className="mt-1 block">
+                            <TagChips tags={taskTags} />
+                          </span>
+                        )}
+                      </>
                     }
                     trailing={now && task.enabled ? <RemainingLabel task={task} now={now} /> : undefined}
                   />

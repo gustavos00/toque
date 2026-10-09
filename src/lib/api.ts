@@ -7,6 +7,7 @@ import type {
   CreateTaskRequest,
   DashboardDto,
   EventListDto,
+  GoogleStatusDto,
   ScanResult,
   SettingsDto,
   TagDto,
@@ -92,7 +93,11 @@ export const API_PATHS = {
   tags: "/api/tags",
   settings: "/api/settings",
   events: "/api/events",
+  googleStatus: "/api/google/status",
 } as const;
+
+/** Full-page navigation target (Google's consent screen can't be fetched). */
+export const GOOGLE_CONNECT_PATH = "/api/google/connect";
 
 export function getTaskPath(id: string) {
   return `${API_PATHS.tasks}/${encodeURIComponent(id)}`;
@@ -194,6 +199,22 @@ export async function updateSettings(input: UpdateSettingsRequest) {
     await requestJson<unknown>(API_PATHS.settings, sendJson("PATCH", input)),
     "settings",
   );
+}
+
+// ---------- Google Calendar ----------
+
+export function getGoogleStatus() {
+  return requestJson<GoogleStatusDto>(API_PATHS.googleStatus);
+}
+
+/** Full re-sync of the "Toque" calendar; returns the new status. */
+export function resyncGoogle() {
+  return requestJson<GoogleStatusDto>("/api/google/resync", sendJson("POST"));
+}
+
+/** Removes the "Toque" calendar and forgets the connection. */
+export function disconnectGoogle() {
+  return requestJson<GoogleStatusDto>("/api/google/disconnect", sendJson("POST"));
 }
 
 /** A readable message for a failed request, in Portuguese. */

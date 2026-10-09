@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { AlarmClock, CircleCheck, Loader2, Nfc, Trash2 } from "lucide-react";
+import { AlarmClock, CircleCheck, Loader2, Nfc, Plus, Trash2 } from "lucide-react";
 import { use, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
@@ -14,6 +14,7 @@ import {
   type RecurringMode,
   type ScanResult,
   type Settings,
+  type TagDto,
   type TaskDto,
   type TaskKind,
 } from "@/shared";
@@ -33,7 +34,8 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import { Switch } from "@/components/ui/switch";
 import { API_PATHS, createTag, createTask, deleteTask, getErrorMessage, getTaskPath, markTaskDone, snoozeTask, updateTask } from "@/lib/api";
 import { formatEveryDays, formatMinutes } from "@/lib/format";
-import { useSettings, useTags, useTask } from "@/lib/queries";
+import { useSettings, useTags, useTask, useTasks } from "@/lib/queries";
+import { formatTagAction } from "@/lib/task-tags";
 import { TASK_KIND_META } from "@/lib/task-kinds";
 import { cn } from "@/lib/utils";
 import { ListField, ListInput, ListRow, ListSection } from "./grouped-list";
@@ -42,6 +44,7 @@ import { PageHeader } from "./page-header";
 import { SegmentedControl } from "./segmented-control";
 import { ListSkeleton, LoadError } from "./status";
 import { Stepper } from "./stepper";
+import { TagSheet } from "./tag-sheet";
 import { TaskIcon } from "./task-icon";
 import { WeekdayPicker } from "./weekday-picker";
 
@@ -182,14 +185,12 @@ export function TaskEditor({ taskId }: { taskId: string | null }) {
 function TaskForm({ task, settings }: { task: TaskDto | null; settings: Settings }) {
   const router = useRouter();
   const { mutate } = useSWRConfig();
-  const { data: tags } = useTags();
   const [form, setForm] = useState(() => createInitialState(task, settings));
   const [isSaving, setIsSaving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [createdTimer, setCreatedTimer] = useState<TaskDto | null>(null);
   const isNew = task === null;
   const today = getLocalDate(new Date());
-  const taskTags = task ? (tags?.filter((tag) => tag.taskId === task.id) ?? []) : [];
 
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -339,21 +340,7 @@ function TaskForm({ task, settings }: { task: TaskDto | null; settings: Settings
 
       {task && (
         <>
-          <ListSection
-            title="Tags"
-            footer={taskTags.length === 0 ? "Sem tag, esta tarefa só avisa: não há como a registar." : undefined}
-          >
-            {taskTags.map((tag) => (
-              <ListRow
-                key={tag.id}
-                href="/tags"
-                icon={<Nfc className="size-[22px] text-primary" />}
-                title={tag.label}
-                subtitle={tag.url}
-              />
-            ))}
-            <ListRow href="/tags" title={<span className="text-primary">Gerir tags</span>} />
-          </ListSection>
+          <TaskTagsSection task={task} />
 
           {task.enabled && (
             <ListSection footer="Para quando não tens a tag à mão.">
@@ -402,6 +389,63 @@ function TaskForm({ task, settings }: { task: TaskDto | null; settings: Settings
   );
 }
 
+/** Linked tags (each opens the tag sheet) and "Adicionar tag" with this task pre-selected. */
+function TaskTagsSection({ task }: { task: TaskDto }) {
+  const { data: allTags } = useTags();
+  const { data: tasks } = useTasks();
+  const [openTag, setOpenTag] = useState<TagDto | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const taskTags = task.tags;
+
+  function openSheet(tagId: string | null) {
+    setOpenTag(tagId ? (allTags?.find((tag) => tag.id === tagId) ?? null) : null);
+    setIsSheetOpen(true);
+  }
+
+  return (
+    <>
+      <ListSection
+        title="Tags"
+        footer={
+          taskTags.length === 0 ? (
+            <span className="text-warning">Sem tag não dá para registar com um toque: adiciona uma.</span>
+          ) : (
+            "Toca numa tag para ver o URL a gravar ou mudar o que faz."
+          )
+        }
+      >
+        {taskTags.map((tag) => (
+          <ListRow
+            key={tag.id}
+            onClick={() => openSheet(tag.id)}
+            chevron
+            icon={<Nfc className="size-[22px] text-primary" />}
+            title={tag.label}
+            trailing={
+              <span className="rounded-full bg-accent px-2 py-0.5 text-[13px] font-medium text-accent-foreground">
+                {formatTagAction(tag.action)}
+              </span>
+            }
+          />
+        ))}
+        <ListRow
+          onClick={() => openSheet(null)}
+          chevron={false}
+          icon={<Plus className="size-[22px] text-primary" />}
+          title={<span className="text-primary">Adicionar tag</span>}
+        />
+      </ListSection>
+      <TagSheet
+        tag={openTag}
+        tasks={tasks ?? [task]}
+        defaultTaskId={task.id}
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+      />
+    </>
+  );
+}
+
 /**
  * After creating a timer: offer a second "complete" tag (e.g. on the clothes
  * rack) that marks the cycle as handled.
@@ -414,7 +458,7 @@ function SecondTagPrompt({ task, onClose }: { task: TaskDto | null; onClose: () 
     if (!task) return;
     setIsCreating(true);
     try {
-      await createTag({ label: `${task.name} · tratada`, taskId: task.id, action: "complete" });
+      await createTag({ label: "Estendal", taskId: task.id, action: "complete" });
       void mutate(API_PATHS.tags);
       toast.success("Tag criada", { description: "Abre-a em Tags para copiar o URL a gravar." });
       onClose();

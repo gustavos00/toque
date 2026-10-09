@@ -1,0 +1,29 @@
+// GET /api/google/connect — starts the Google OAuth consent.
+// 302 → accounts.google.com (signed `state`, no cookie), or
+// 302 → /definicoes?google=config when the server lacks Google env.
+
+import { NextResponse, type NextRequest } from "next/server";
+import { requireSession } from "@/server/auth";
+import {
+  buildGoogleAuthUrl,
+  createGoogleState,
+  getGoogleRedirectUri,
+  isGoogleConfigured,
+} from "@/server/google";
+
+export async function GET(request: NextRequest) {
+  const denied = await requireSession(request);
+  if (denied) return denied;
+
+  if (!isGoogleConfigured()) {
+    return NextResponse.redirect(
+      new URL("/definicoes?google=config", request.url),
+      302,
+    );
+  }
+  const authUrl = buildGoogleAuthUrl({
+    redirectUri: getGoogleRedirectUri(request),
+    state: await createGoogleState(),
+  });
+  return NextResponse.redirect(authUrl, 302);
+}

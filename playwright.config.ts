@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-import { E2E_ENV, E2E_PORT } from "./e2e/env";
+import { E2E_ENV, E2E_NO_GOOGLE_ENV, E2E_NO_GOOGLE_PORT, E2E_PORT } from "./e2e/env";
 
 // E2E runs against its own server on a free port with an in-memory PGlite, so
 // it never touches a dev server on :3000 or its .data/pglite.
@@ -30,16 +30,32 @@ export default defineConfig({
       use: { ...devices["iPhone 15"], locale: "pt-PT", timezoneId: "Europe/Lisbon" },
     },
   ],
-  webServer: {
-    command: useDevServer
-      ? `npx next dev --port ${E2E_PORT}`
-      : `npx next build && npx next start --port ${E2E_PORT}`,
-    // Answers 401 without the cron secret, which Playwright counts as "ready".
-    url: `${baseURL}/api/tick`,
-    timeout: 300_000,
-    reuseExistingServer: false,
-    stdout: "pipe",
-    stderr: "pipe",
-    env: E2E_ENV,
-  },
+  webServer: [
+    {
+      command: useDevServer
+        ? `npx next dev --port ${E2E_PORT}`
+        : `npx next build && npx next start --port ${E2E_PORT}`,
+      // Answers 401 without the cron secret, which Playwright counts as "ready".
+      url: `${baseURL}/api/tick`,
+      timeout: 300_000,
+      reuseExistingServer: false,
+      stdout: "pipe",
+      stderr: "pipe",
+      env: E2E_ENV,
+    },
+    // Build mode only: a second `next start` on the same build with an invalid
+    // Google encryption key, for the "Google not configured" spec. Web servers
+    // start in order, so the build above is finished by then.
+    ...(useDevServer
+      ? []
+      : [
+          {
+            command: `npx next start --port ${E2E_NO_GOOGLE_PORT}`,
+            url: `http://localhost:${E2E_NO_GOOGLE_PORT}/api/tick`,
+            timeout: 60_000,
+            reuseExistingServer: false,
+            env: E2E_NO_GOOGLE_ENV,
+          },
+        ]),
+  ],
 });

@@ -12,6 +12,7 @@ import { getStoredTheme, saveTheme, type Theme } from "@/lib/theme";
 import { CopyButton } from "./copy-button";
 import { ListField, ListInput, ListRow, ListSection } from "./grouped-list";
 import { MinutesListEditor, PICKER_CLASS_NAME, TimeListEditor } from "./list-editors";
+import { GoogleCalendarSection } from "./google-calendar-section";
 import { PageHeader } from "./page-header";
 import { SegmentedControl } from "./segmented-control";
 import { ListSkeleton, LoadError } from "./status";
@@ -120,6 +121,8 @@ function SettingsContent({ settings, onSave }: { settings: SettingsDto; onSave: 
       </ListSection>
 
       <NtfySection server={ntfy.server} topic={ntfy.topic} onSave={(patch) => onSave({ ntfy: patch })} />
+
+      <GoogleCalendarSection />
 
       <ListSection title="Avisos por omissão" footer="Valores sugeridos ao criar tarefas novas. Não mudam as tarefas existentes.">
         <ListRow title="Até confirmar" subtitle="Horas dos avisos, por ordem" />

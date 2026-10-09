@@ -58,6 +58,9 @@ export type TaskStateDto = {
   snoozedUntil: IsoDateTime | null;
 };
 
+/** A tag linked to a task, as listed inside TaskDto. */
+export type TaskTagDto = { id: string; label: string; action: TagAction };
+
 export type TaskDto = TaskDefinition & {
   id: string;
   name: string;
@@ -65,6 +68,8 @@ export type TaskDto = TaskDefinition & {
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
   state: TaskStateDto | null;
+  /** Tags currently assigned to this task, by label. */
+  tags: TaskTagDto[];
 };
 
 // ---------- Tags ----------
@@ -167,4 +172,21 @@ export type DashboardDto = {
   }[];
   /** Latest 10 events. */
   recentEvents: EventDto[];
+};
+
+// ---------- Google Calendar ----------
+
+/** GET /api/google/status (also returned by disconnect and resync). */
+export type GoogleStatusDto = {
+  /** GOOGLE_CLIENT_ID/SECRET and TOQUE_ENCRYPTION_KEY are set on the server. */
+  configured: boolean;
+  /** A connection exists and Google has not rejected it. */
+  connected: boolean;
+  /** Connected Google account (kept when the connection broke). */
+  email: string | null;
+  /** "Toque" once the app's calendar exists, else null. */
+  calendarName: string | null;
+  /** Portuguese message for the settings page (auth or sync problem). */
+  lastError: string | null;
+  lastSyncAt: IsoDateTime | null;
 };

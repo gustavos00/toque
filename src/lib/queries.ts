@@ -10,6 +10,7 @@ import {
   API_PATHS,
   getDashboard,
   getEventsPath,
+  getGoogleStatus,
   getSettings,
   getTask,
   getTaskPath,
@@ -54,4 +55,8 @@ export function useEventPages(pageSize: number) {
     },
     { revalidateOnFocus: true },
   );
+}
+
+export function useGoogleStatus() {
+  return useSWR(API_PATHS.googleStatus, getGoogleStatus, SWR_OPTIONS);
 }

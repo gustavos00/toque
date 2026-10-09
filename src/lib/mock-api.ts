@@ -35,9 +35,12 @@ function createIso(offsetMs: number) {
   return new Date(Date.now() + offsetMs).toISOString();
 }
 
-function createMockTask(partial: Omit<TaskDto, "createdAt" | "updatedAt" | "enabled" | "state"> & Partial<TaskDto>): TaskDto {
+function createMockTask(
+  partial: Omit<TaskDto, "createdAt" | "updatedAt" | "enabled" | "state" | "tags"> & Partial<TaskDto>,
+): TaskDto {
   return {
     enabled: true,
+    tags: [],
     createdAt: createIso(-30 * DAY),
     updatedAt: createIso(-2 * DAY),
     state: null,
@@ -144,6 +147,15 @@ const store = {
   })) as (EventDto & { taskIndex: number })[],
 };
 
+/** Mirrors the API: each task carries its tags, by label. */
+function attachTags(task: TaskDto): TaskDto {
+  const tags = store.tags
+    .filter((tag) => tag.taskId === task.id)
+    .sort((a, b) => a.label.localeCompare(b.label, "pt"))
+    .map(({ id, label, action }) => ({ id, label, action }));
+  return { ...task, tags };
+}
+
 function buildEvents(): EventDto[] {
   return store.events.map(({ taskIndex, ...event }) => ({
     ...event,
@@ -155,7 +167,7 @@ function buildEvents(): EventDto[] {
 function buildDashboard(): DashboardDto {
   const now = new Date();
   const today = getLocalDate(now);
-  const enabled = store.tasks.filter((task) => task.enabled);
+  const enabled = store.tasks.filter((task) => task.enabled).map(attachTags);
   return {
     now: now.toISOString(),
     today,
@@ -205,6 +217,16 @@ export async function getMockResponse<T>(path: string, init?: RequestInit): Prom
   const body = readBody(init);
 
   if (resource === "auth") return null as T;
+  if (resource === "google") {
+    return {
+      configured: true,
+      connected: !url.pathname.endsWith("/disconnect"),
+      email: "eu@example.com",
+      calendarName: "Toque",
+      lastError: null,
+      lastSyncAt: new Date(Date.now() - 3 * MINUTE).toISOString(),
+    } as T;
+  }
   if (resource === "dashboard") return buildDashboard() as T;
   if (resource === "events") return { events: buildEvents(), nextBeforeId: null } as T;
 
@@ -216,7 +238,7 @@ export async function getMockResponse<T>(path: string, init?: RequestInit): Prom
   if (resource === "tasks") {
     if (url.pathname.endsWith("/snooze")) return { title: "Adiado", message: "Volto a lembrar daqui a 30 min.", tone: "info" } as T;
     if (url.pathname.endsWith("/done")) return { title: "Feito", message: "Marcado como feito.", tone: "done" } as T;
-    if (!id && method === "GET") return store.tasks as T;
+    if (!id && method === "GET") return store.tasks.map(attachTags) as T;
     if (!id && method === "POST") {
       const definition = parseTaskDefinition(body);
       const task = createMockTask({
@@ -242,7 +264,7 @@ export async function getMockResponse<T>(path: string, init?: RequestInit): Prom
         : {};
       store.tasks[index] = { ...current, ...body, ...definition, updatedAt: new Date().toISOString() } as TaskDto;
     }
-    return store.tasks[index] as T;
+    return attachTags(store.tasks[index]) as T;
   }
 
   if (resource === "tags") {

@@ -7,7 +7,12 @@ import { eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { requireSession } from "@/server/auth";
 import { getDb } from "@/server/db";
-import { buildTask, buildTaskDto, getTaskById } from "@/server/db/queries";
+import {
+  buildTask,
+  buildTaskDto,
+  getTagsByTaskId,
+  getTaskById,
+} from "@/server/db/queries";
 import { events, tasks, taskState } from "@/server/db/schema";
 import { rescheduleTask } from "@/server/engine";
 import { updateTaskRequestSchema } from "@/shared/api";
@@ -35,7 +40,8 @@ export async function GET(
     .select()
     .from(taskState)
     .where(eq(taskState.taskId, id));
-  return Response.json(buildTaskDto(task, state));
+  const tagsByTask = await getTagsByTaskId(db, [id]);
+  return Response.json(buildTaskDto(task, state, tagsByTask.get(id) ?? []));
 }
 
 export async function PATCH(
@@ -89,7 +95,10 @@ export async function PATCH(
     .select()
     .from(taskState)
     .where(eq(taskState.taskId, id));
-  return Response.json(buildTaskDto(buildTask(row), state));
+  const tagsByTask = await getTagsByTaskId(db, [id]);
+  return Response.json(
+    buildTaskDto(buildTask(row), state, tagsByTask.get(id) ?? []),
+  );
 }
 
 export async function DELETE(

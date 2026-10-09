@@ -14,8 +14,12 @@ function isProduction() {
   return process.env.NODE_ENV === "production";
 }
 
-/** The signing key. In production TOQUE_SESSION_SECRET (≥ 32 chars) is required. */
-function getSessionKey(): Uint8Array {
+/**
+ * The signing key (also used for other short-lived signed values, such as
+ * the Google OAuth state). In production TOQUE_SESSION_SECRET (≥ 32 chars)
+ * is required.
+ */
+export function getSessionKey(): Uint8Array {
   const secret = process.env.TOQUE_SESSION_SECRET;
   if (secret && secret.length >= MIN_SECRET_LENGTH)
     return new TextEncoder().encode(secret);

@@ -9,6 +9,7 @@
 // Every write is a single idempotent statement (Neon HTTP has no transactions).
 
 import { and, asc, eq, inArray, isNull, lte, notInArray, sql } from "drizzle-orm";
+import { syncAllCalendarEvents, syncAllCalendarEventsIfDue, syncTaskCalendarEvents } from "@/server/calendar";
 import { getDb, schema, type Db } from "@/server/db";
 import { buildTask, getSettings, getTaskById } from "@/server/db/queries";
 import {
@@ -123,6 +124,8 @@ async function applyOutcome(db: Db, task: Task, state: EngineTaskState, outcome:
   await saveTaskState(db, task.id, outcome.patch);
   await insertEvents(db, task, tagId, outcome, now);
   await reconcileTask(db, task, { ...state, ...outcome.patch }, await getSettings(db), now);
+  // Never throws: Google problems end up in google_connection.last_error.
+  await syncTaskCalendarEvents(task.id, now);
   return outcome.result;
 }
 
@@ -213,15 +216,17 @@ export async function rescheduleTask(taskId: string, now: Date): Promise<void> {
       .update(notifications)
       .set({ cancelledAt: now })
       .where(and(eq(notifications.taskId, taskId), isNull(notifications.sentAt), isNull(notifications.cancelledAt)));
-    return;
+  } else {
+    await reconcileTask(db, task, await getTaskState(db, task.id), await getSettings(db), now);
   }
-  await reconcileTask(db, task, await getTaskState(db, task.id), await getSettings(db), now);
+  await syncTaskCalendarEvents(taskId, now);
 }
 
 /** Re-plans every task — call after settings change (quiet hours, snooze length…). */
 export async function rescheduleAllTasks(now: Date): Promise<void> {
   const db = await getDb();
   await reconcileAllTasks(db, await getSettings(db), now);
+  await syncAllCalendarEvents(now);
 }
 
 async function reconcileAllTasks(db: Db, settings: Settings, now: Date) {
@@ -248,6 +253,13 @@ async function claimNotification(db: Db, id: string, now: Date) {
  * `deps.notifier` overrides the configured provider (tests); null = sending disabled.
  */
 export async function runTick(now: Date, deps: { notifier?: Notifier | null } = {}): Promise<{ sent: number }> {
+  const result = await sendDueNotifications(now, deps);
+  // Rolls the calendar horizon forward at most once per hour; never throws.
+  await syncAllCalendarEventsIfDue(now);
+  return result;
+}
+
+async function sendDueNotifications(now: Date, deps: { notifier?: Notifier | null }): Promise<{ sent: number }> {
   const db = await getDb();
   const settings = await getSettings(db);
   await reconcileAllTasks(db, settings, now);

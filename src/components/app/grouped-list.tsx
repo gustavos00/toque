@@ -51,7 +51,7 @@ export function ListRow({ icon, title, subtitle, trailing, href, onClick, chevro
       {icon && <span className="flex shrink-0 items-center">{icon}</span>}
       <span className="flex min-h-11 min-w-0 flex-1 items-center gap-3 border-b border-separator py-2.5 pr-4 group-last/row:border-b-0">
         <span className="min-w-0 flex-1">
-          <span className={cn("block truncate text-[17px] leading-snug", destructive && "text-destructive")}>
+          <span className={cn("line-clamp-2 block text-[17px] leading-snug break-words", destructive && "text-destructive")}>
             {title}
           </span>
           {subtitle && <span className="mt-0.5 block text-[14px] leading-snug text-muted-foreground">{subtitle}</span>}

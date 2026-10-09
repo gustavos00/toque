@@ -267,6 +267,16 @@ describe("tags", () => {
     expect(tag.url).toBe(`https://toque.example.pt/t/${tag.token}`);
     expect(tag.action).toBe("start");
 
+    const detail = (await (
+      await taskRoute.GET(
+        createRequest(`/api/tasks/${task.id}`),
+        createContext({ id: task.id }),
+      )
+    ).json()) as TaskDto;
+    expect(detail.tags).toEqual([
+      { id: tag.id, label: "Máquina", action: "start" },
+    ]);
+
     const { tag: other } = await createTag({
       label: "Estendal",
       taskId: task.id,
@@ -274,6 +284,14 @@ describe("tags", () => {
     });
     expect(other.token).not.toBe(tag.token);
     expect(other.action).toBe("complete");
+
+    const list = (await (
+      await tasksRoute.GET(createRequest("/api/tasks"))
+    ).json()) as TaskDto[];
+    expect(list[0].tags.map((item) => [item.label, item.action])).toEqual([
+      ["Estendal", "complete"],
+      ["Máquina", "start"],
+    ]);
 
     const unassigned = await tagRoute.PATCH(
       createRequest(`/api/tags/${tag.id}`, {

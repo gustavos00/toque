@@ -12,9 +12,20 @@ Cada tag guarda um endereço `https://<domínio>/t/<token>`. Abri-lo regista o t
 | **Até confirmar** (`until_ack`) | Lixo | Nos dias de recolha manda alertas cada vez mais insistentes até tocar na tag. |
 | **Recorrente** (`recurring`) | Regar plantas | Fica pendente a cada N dias depois do último toque. |
 
+## Funcionalidades
+
+- **Toque sem login**: a tag abre `/t/<token>` e mostra a confirmação em português.
+- **Várias tags por tarefa**, cada uma com a sua ação — "inicia" (ex.: máquina) ou "tratada" (ex.: estendal). As tarefas mostram as tags ligadas, na lista e no detalhe.
+- **Notificações ntfy** com botões "Feito" / "Adiar", horas de silêncio e lembretes cada vez mais insistentes.
+- **Painel** com temporizadores a decorrer, tarefas de hoje e periódicas; histórico de toques.
+- **Google Calendar** (opcional): um calendário "Toque" só da app, eventos sem lembretes, apagados quando a tarefa fica feita — ver [google-calendar.md](docs/google-calendar.md).
+- PWA instalável no ecrã principal do iPhone.
+
 ## Stack
 
-Next.js 16 (App Router) + TypeScript + Tailwind · Drizzle ORM com **Neon Postgres** em produção e **PGlite** local (sem configuração) · Vercel Hobby · cron-job.org chama `/api/tick` a cada minuto · ntfy.sh para as notificações.
+Next.js 16 (App Router) + TypeScript + Tailwind · Drizzle ORM com **Neon Postgres** em produção e **PGlite** local (sem configuração) · Vercel Hobby (migrações aplicadas em cada deploy) · cron-job.org chama `/api/tick` a cada minuto · ntfy.sh para as notificações · Google Calendar API (OAuth, `calendar.app.created`).
+
+Em produção: <https://toque-two.vercel.app>.
 
 ## Desenvolvimento
 
@@ -41,6 +52,7 @@ Base de dados: `npm run db:generate` (gera migrações a partir de `src/server/d
 
 ## Documentação
 
-- [Pôr online (Vercel + Neon + cron-job.org)](docs/deploy.md)
+- [Pôr online (Vercel + Neon + cron-job.org)](docs/deploy.md) — segredos com `bash scripts/setup-vercel-env.sh` (e `--google`)
 - [Notificações com ntfy](docs/ntfy.md)
 - [Gravar e colar as tags NFC](docs/tags-nfc.md)
+- [Ligar ao Google Calendar](docs/google-calendar.md)

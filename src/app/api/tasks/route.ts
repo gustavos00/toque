@@ -5,7 +5,7 @@ import { asc } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { requireSession } from "@/server/auth";
 import { getDb } from "@/server/db";
-import { buildTask, buildTaskDto } from "@/server/db/queries";
+import { buildTask, buildTaskDto, getTagsByTaskId } from "@/server/db/queries";
 import { events, tasks, taskState } from "@/server/db/schema";
 import { rescheduleTask } from "@/server/engine";
 import { createTaskRequestSchema, type TaskDto } from "@/shared/api";
@@ -16,13 +16,18 @@ export async function GET(request: NextRequest) {
   if (denied) return denied;
 
   const db = await getDb();
-  const [taskRows, stateRows] = await Promise.all([
+  const [taskRows, stateRows, tagsByTask] = await Promise.all([
     db.select().from(tasks).orderBy(asc(tasks.name)),
     db.select().from(taskState),
+    getTagsByTaskId(db),
   ]);
   const stateByTask = new Map(stateRows.map((row) => [row.taskId, row]));
   const body: TaskDto[] = taskRows.map((row) =>
-    buildTaskDto(buildTask(row), stateByTask.get(row.id)),
+    buildTaskDto(
+      buildTask(row),
+      stateByTask.get(row.id),
+      tagsByTask.get(row.id) ?? [],
+    ),
   );
   return Response.json(body);
 }
@@ -44,5 +49,5 @@ export async function POST(request: NextRequest) {
     .insert(events)
     .values({ type: "task_created", taskId: row.id, data: { name } });
   await rescheduleTask(row.id, new Date());
-  return Response.json(buildTaskDto(buildTask(row), null), { status: 201 });
+  return Response.json(buildTaskDto(buildTask(row), null, []), { status: 201 });
 }

@@ -1,8 +1,14 @@
 // Typed reads and row → DTO mappers shared by route handlers and the engine.
 
 import { randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
-import type { EventDto, TagDto, TaskDto, TaskStateDto } from "@/shared/api";
+import { asc, eq, inArray, isNotNull } from "drizzle-orm";
+import type {
+  EventDto,
+  TagDto,
+  TaskDto,
+  TaskStateDto,
+  TaskTagDto,
+} from "@/shared/api";
 import { mergeSettings, type Settings } from "@/shared/settings";
 import {
   taskDefinitionSchema,
@@ -103,13 +109,44 @@ export function buildTaskStateDto(
 export function buildTaskDto(
   task: Task,
   state: TaskStateRow | null | undefined,
+  taskTags: TaskTagDto[],
 ): TaskDto {
   return {
     ...task,
     createdAt: task.createdAt.toISOString(),
     updatedAt: task.updatedAt.toISOString(),
     state: buildTaskStateDto(state),
+    tags: taskTags,
   };
+}
+
+/**
+ * Tags grouped by task id, in one query. Pass task ids to limit it; omit to
+ * get every assigned tag. Tasks without tags are absent from the map.
+ */
+export async function getTagsByTaskId(
+  db: Db,
+  taskIds?: string[],
+): Promise<Map<string, TaskTagDto[]>> {
+  const grouped = new Map<string, TaskTagDto[]>();
+  if (taskIds?.length === 0) return grouped;
+  const rows = await db
+    .select({
+      id: tags.id,
+      label: tags.label,
+      action: tags.action,
+      taskId: tags.taskId,
+    })
+    .from(tags)
+    .where(taskIds ? inArray(tags.taskId, taskIds) : isNotNull(tags.taskId))
+    .orderBy(asc(tags.label));
+  for (const { taskId, ...tag } of rows) {
+    if (!taskId) continue;
+    const list = grouped.get(taskId) ?? [];
+    list.push(tag);
+    grouped.set(taskId, list);
+  }
+  return grouped;
 }
 
 /** `baseUrl` is the public origin, e.g. "https://toque.example.pt". */

@@ -151,3 +151,73 @@ export const settings = pgTable(
   },
   (table) => [check("settings_single_row", sql`${table.id} = 1`)],
 );
+
+/**
+ * Google Calendar connection, single row (id = 1). Tokens are encrypted with
+ * AES-256-GCM (TOQUE_ENCRYPTION_KEY, see src/server/google/crypto.ts).
+ * Connected = row exists and broken_at is null.
+ */
+export const googleConnection = pgTable(
+  "google_connection",
+  {
+    id: smallint("id").primaryKey().default(1),
+    /** Google account email (from the id_token). */
+    email: text("email").notNull(),
+    refreshTokenEncrypted: text("refresh_token_encrypted").notNull(),
+    accessTokenEncrypted: text("access_token_encrypted"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", {
+      withTimezone: true,
+    }),
+    /** Scopes Google actually granted (space separated). */
+    scope: text("scope").notNull().default(""),
+    /** The "Toque" calendar; null until the calendar module creates it. */
+    calendarId: text("calendar_id"),
+    connectedAt: timestamp("connected_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    /** Set when Google rejects the refresh token (revoked / expired). */
+    brokenAt: timestamp("broken_at", { withTimezone: true }),
+    /** Last error shown in settings (auth or sync), Portuguese. */
+    lastError: text("last_error"),
+    /** Last successful full or partial sync (written by the calendar module). */
+    lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+    updatedAt: updatedAt(),
+  },
+  (table) => [check("google_connection_single_row", sql`${table.id} = 1`)],
+);
+
+/**
+ * One row per Google Calendar event the app manages. `occurrence_key`
+ * identifies the occurrence within a task (e.g. "2026-10-13" or a timer
+ * run); `content_hash` lets the sync skip unchanged events. A deleted task
+ * sets task_id to null (instead of cascading) so the sync can still find
+ * and delete its Google events; deleted_at marks rows whose Google event
+ * is gone.
+ */
+export const calendarEvents = pgTable(
+  "calendar_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    taskId: uuid("task_id").references(() => tasks.id, {
+      onDelete: "set null",
+    }),
+    occurrenceKey: text("occurrence_key").notNull(),
+    /** Null until the event has been created in Google. */
+    googleEventId: text("google_event_id"),
+    start: timestamp("start", { withTimezone: true }).notNull(),
+    end: timestamp("end", { withTimezone: true }).notNull(),
+    contentHash: text("content_hash").notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("calendar_events_task_occurrence_unique").on(
+      table.taskId,
+      table.occurrenceKey,
+    ),
+    index("calendar_events_live_idx")
+      .on(table.taskId)
+      .where(sql`${table.deletedAt} is null`),
+  ],
+);

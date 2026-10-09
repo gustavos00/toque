@@ -11,7 +11,8 @@ import { EmptyState } from "./empty-state";
 import { ListRow, ListSection } from "./grouped-list";
 import { PageHeader } from "./page-header";
 import { ListSkeleton, LoadError } from "./status";
-import { formatTagAction, TagSheet } from "./tag-sheet";
+import { formatTagAction } from "@/lib/task-tags";
+import { TagSheet } from "./tag-sheet";
 
 export function TagListView() {
   const { data: tags, error, isLoading, mutate } = useTags();
