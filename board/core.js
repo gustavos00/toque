@@ -110,8 +110,11 @@ function getStrikes(agent) {
   return agent?.strikes ?? [];
 }
 
+// Gustavo's rule: the agile master and the board's coordinator are never fired; their strikes still show.
+const PERMANENT_IDS = new Set(["pm", "quadro"]);
+
 function isFired(agent) {
-  return getStrikes(agent).length >= MAX_STRIKES;
+  return Boolean(agent) && !PERMANENT_IDS.has(agent.id) && getStrikes(agent).length >= MAX_STRIKES;
 }
 
 // An agent "doing" something with nothing on the board for 5 min: a warning, not a strike.

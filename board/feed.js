@@ -89,7 +89,7 @@ function collectEntries(agents) {
   const replyEntries = visible.flatMap((a) => (a.replies ?? []).map((r) => ({ at: r.at, kind: "reply", text: `Gustavo: ${r.text}`, agent: a })));
   const strikeEntries = visible.flatMap((a) => getStrikes(a).map((s, i) => ({
     at: s.at, kind: "strike", agent: a,
-    text: `${i + 1}/${MAX_STRIKES} · ${s.reason} (por ${s.by ?? "pm"})${i + 1 >= MAX_STRIKES ? " · Despedido" : ""}`,
+    text: `${i + 1}/${MAX_STRIKES} · ${s.reason} (por ${s.by ?? "pm"})${i + 1 >= MAX_STRIKES && isFired(a) ? " · Despedido" : ""}`,
   })));
   const terms = normalizeSearchText(feedQuery).split(/\s+/).filter(Boolean);
   return visible
