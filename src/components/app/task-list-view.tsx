@@ -42,7 +42,8 @@ export function TaskListView() {
 
   return (
     <>
-      <PageHeader title="Tarefas" action={<AddTaskButton />} />
+      {/* "+" only once there is a list; while loading or empty, the empty state's button is the way in. */}
+      <PageHeader title="Tarefas" action={tasks && tasks.length > 0 ? <AddTaskButton /> : undefined} />
       {isLoading && !tasks && <ListSkeleton />}
       {error && !tasks && <LoadError error={error} onRetry={() => mutate()} />}
       {tasks && tasks.length === 0 && (

@@ -30,11 +30,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Switch } from "@/components/ui/switch";
-import { API_PATHS, createTag, createTask, deleteTask, getErrorMessage, getTaskPath, markTaskDone, snoozeTask, updateTask } from "@/lib/api";
+import { API_PATHS, createTag, createTask, updateTag as updateTagRequest, deleteTask, getErrorMessage, getTaskPath, markTaskDone, snoozeTask, updateTask } from "@/lib/api";
 import { formatEveryDays, formatMinutes } from "@/lib/format";
 import { useSettings, useTags, useTask, useTasks } from "@/lib/queries";
+import {
+  buildPendingTagRequest,
+  createDefaultPendingTags,
+  refreshPendingLabels,
+  type PendingTag,
+} from "@/lib/pending-tags";
 import { formatTagAction } from "@/lib/task-tags";
 import { TASK_KIND_META } from "@/lib/task-kinds";
 import { cn } from "@/lib/utils";
@@ -44,6 +49,7 @@ import { PageHeader } from "./page-header";
 import { SegmentedControl } from "./segmented-control";
 import { ListSkeleton, LoadError } from "./status";
 import { Stepper } from "./stepper";
+import { PendingTagsSection } from "./pending-tags-section";
 import { TagSheet } from "./tag-sheet";
 import { TaskIcon } from "./task-icon";
 import { WeekdayPicker } from "./weekday-picker";
@@ -188,13 +194,35 @@ function TaskForm({ task, settings }: { task: TaskDto | null; settings: Settings
   const [form, setForm] = useState(() => createInitialState(task, settings));
   const [isSaving, setIsSaving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
-  const [createdTimer, setCreatedTimer] = useState<TaskDto | null>(null);
+  const [pendingTags, setPendingTags] = useState<PendingTag[]>(() =>
+    task ? [] : createDefaultPendingTags(form.kind, form.name),
+  );
+  const { data: allTags } = useTags();
+  const freeTags = allTags?.filter((tag) => tag.taskId === null) ?? [];
   const isNew = task === null;
   const today = getLocalDate(new Date());
 
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
     setProblem(null);
+    if (!task && (key === "kind" || key === "name")) {
+      const kind = key === "kind" ? (value as TaskKind) : form.kind;
+      const name = key === "name" ? (value as string) : form.name;
+      setPendingTags((current) => refreshPendingLabels(current, kind, name));
+    }
+  }
+
+  /** Creates / assigns the pending tags; returns the names that failed. */
+  async function savePendingTags(created: TaskDto) {
+    const results = await Promise.allSettled(
+      pendingTags.map((tag) => {
+        const request = buildPendingTagRequest(tag, created);
+        return request.type === "assign"
+          ? updateTagRequest(request.tagId, request.input)
+          : createTag(request.input);
+      }),
+    );
+    return pendingTags.filter((_, index) => results[index].status === "rejected").map((tag) => tag.label || "sem nome");
   }
 
   function refreshLists() {
@@ -218,12 +246,16 @@ function TaskForm({ task, settings }: { task: TaskDto | null; settings: Settings
         toast.success("Alterações guardadas");
       } else {
         const created = await createTask(request);
-        if (created.kind === "timer") {
-          setCreatedTimer(created);
+        const failed = await savePendingTags(created);
+        if (failed.length > 0) {
+          toast.error(`Tarefa criada, mas falhou a tag ${failed.join(", ")}`, {
+            description: "Podes tentar outra vez na secção Tags da tarefa.",
+          });
         } else {
-          toast.success("Tarefa criada", { description: "Associa-lhe uma tag no separador Tags." });
-          router.push("/tarefas");
+          toast.success("Tarefa criada");
         }
+        void mutate(API_PATHS.tags);
+        router.push(`/tarefas/${created.id}`);
       }
       refreshLists();
     } catch (error) {
@@ -273,7 +305,6 @@ function TaskForm({ task, settings }: { task: TaskDto | null; settings: Settings
 
   return (
     <>
-      <SecondTagPrompt task={createdTimer} onClose={() => router.push("/tarefas")} />
       <PageHeader
         title={isNew ? "Nova tarefa" : task.name}
         back={{ href: "/tarefas", label: "Tarefas" }}
@@ -290,7 +321,7 @@ function TaskForm({ task, settings }: { task: TaskDto | null; settings: Settings
           <div className="pl-4">
             <ListInput
               aria-label="Nome da tarefa"
-              placeholder="Nome (ex.: Máquina de lavar)"
+              placeholder={TASK_KIND_META[form.kind].namePlaceholder}
               value={form.name}
               maxLength={80}
               onChange={(event) => updateForm("name", event.target.value)}
@@ -324,6 +355,16 @@ function TaskForm({ task, settings }: { task: TaskDto | null; settings: Settings
         )}
         {form.kind === "recurring" && (
           <RecurringFields value={form.recurring} onChange={(recurring) => updateForm("recurring", recurring)} />
+        )}
+
+        {isNew && (
+          <PendingTagsSection
+            kind={form.kind}
+            taskName={form.name}
+            value={pendingTags}
+            onChange={setPendingTags}
+            freeTags={freeTags}
+          />
         )}
 
         {problem && (
@@ -443,54 +484,6 @@ function TaskTagsSection({ task }: { task: TaskDto }) {
         onOpenChange={setIsSheetOpen}
       />
     </>
-  );
-}
-
-/**
- * After creating a timer: offer a second "complete" tag (e.g. on the clothes
- * rack) that marks the cycle as handled.
- */
-function SecondTagPrompt({ task, onClose }: { task: TaskDto | null; onClose: () => void }) {
-  const { mutate } = useSWRConfig();
-  const [isCreating, setIsCreating] = useState(false);
-
-  async function createCompleteTag() {
-    if (!task) return;
-    setIsCreating(true);
-    try {
-      await createTag({ label: "Estendal", taskId: task.id, action: "complete" });
-      void mutate(API_PATHS.tags);
-      toast.success("Tag criada", { description: "Abre-a em Tags para copiar o URL a gravar." });
-      onClose();
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-      setIsCreating(false);
-    }
-  }
-
-  return (
-    <Drawer open={task !== null} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="bg-background">
-        <div className="mx-auto w-full max-w-xl px-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
-          <DrawerHeader className="px-0">
-            <div className="mb-2 flex justify-center">
-              <TaskIcon kind="timer" size="lg" />
-            </div>
-            <DrawerTitle className="text-[20px] font-semibold">Tarefa criada</DrawerTitle>
-            <DrawerDescription className="text-[15px]">
-              Queres uma segunda tag para marcar como tratada? Cola-a no estendal: ao tocá-la, os lembretes param.
-            </DrawerDescription>
-          </DrawerHeader>
-          <Button size="xl" className="mb-2 w-full" disabled={isCreating} onClick={createCompleteTag}>
-            {isCreating ? <Loader2 className="animate-spin" /> : <Nfc />}
-            Criar tag &quot;tratada&quot;
-          </Button>
-          <Button variant="ghost" size="xl" className="w-full text-primary" onClick={onClose}>
-            Agora não
-          </Button>
-        </div>
-      </DrawerContent>
-    </Drawer>
   );
 }
 

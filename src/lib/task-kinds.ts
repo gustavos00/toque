@@ -6,6 +6,8 @@ import { formatWeekdaySummary } from "./weekdays";
 type TaskKindMeta = {
   label: string;
   description: string;
+  /** Placeholder for the task's name field. */
+  namePlaceholder: string;
   icon: LucideIcon;
   /** Tailwind background class for the icon tile. */
   tileClassName: string;
@@ -15,6 +17,7 @@ type TaskKindMeta = {
 export const TASK_KIND_META: Record<TaskKind, TaskKindMeta> = {
   timer: {
     label: "Temporizador",
+    namePlaceholder: "ex.: Máquina de lavar",
     description: "Ler a tag inicia uma contagem. Avisa quando acaba e lembra se ficar esquecido.",
     icon: Timer,
     tileClassName: "bg-kind-timer",
@@ -22,6 +25,7 @@ export const TASK_KIND_META: Record<TaskKind, TaskKindMeta> = {
   },
   until_ack: {
     label: "Até confirmar",
+    namePlaceholder: "ex.: Pôr o lixo na rua",
     description: "Nos dias marcados, avisa a horas certas até leres a tag nesse dia.",
     icon: BellRing,
     tileClassName: "bg-kind-until-ack",
@@ -29,6 +33,7 @@ export const TASK_KIND_META: Record<TaskKind, TaskKindMeta> = {
   },
   recurring: {
     label: "Periódica",
+    namePlaceholder: "ex.: Regar as plantas",
     description: "Em dias da semana certos ou de N em N dias. Ler a tag marca como feita; fica em atraso depois do prazo.",
     icon: Repeat,
     tileClassName: "bg-kind-recurring",

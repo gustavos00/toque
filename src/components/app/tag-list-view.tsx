@@ -1,6 +1,7 @@
 "use client";
 
-import { Nfc, Plus } from "lucide-react";
+import Link from "next/link";
+import { ListChecks, Nfc, Plus } from "lucide-react";
 import { useState } from "react";
 import type { TagDto } from "@/shared";
 import { Button } from "@/components/ui/button";
@@ -10,8 +11,8 @@ import { cn } from "@/lib/utils";
 import { EmptyState } from "./empty-state";
 import { ListRow, ListSection } from "./grouped-list";
 import { PageHeader } from "./page-header";
-import { ListSkeleton, LoadError } from "./status";
 import { formatTagAction } from "@/lib/task-tags";
+import { ListSkeleton, LoadError } from "./status";
 import { TagSheet } from "./tag-sheet";
 
 export function TagListView() {
@@ -20,20 +21,31 @@ export function TagListView() {
   const [editing, setEditing] = useState<TagDto | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
+  /** null = new tag (the sheet shows the task picker). */
   function openSheet(tag: TagDto | null) {
     setEditing(tag);
     setIsSheetOpen(true);
   }
 
-  const addButton = (
-    <Button variant="ghost" size="icon-touch" className="text-primary" aria-label="Nova tag" onClick={() => openSheet(null)}>
-      <Plus className="size-7" />
-    </Button>
-  );
-
   return (
     <>
-      <PageHeader title="Tags" action={addButton} />
+      {/* "+" only once there is a list; when empty, the empty state points to Tarefas. */}
+      <PageHeader
+        title="Tags"
+        action={
+          tags && tags.length > 0 ? (
+            <Button
+              variant="ghost"
+              size="icon-touch"
+              className="text-primary"
+              aria-label="Nova tag"
+              onClick={() => openSheet(null)}
+            >
+              <Plus className="size-7" />
+            </Button>
+          ) : undefined
+        }
+      />
       {isLoading && !tags && <ListSkeleton sections={1} rows={4} />}
       {error && !tags && <LoadError error={error} onRetry={() => mutate()} />}
       {tags && tags.length === 0 && (
@@ -41,10 +53,12 @@ export function TagListView() {
           <EmptyState
             icon={Nfc}
             title="Sem tags"
-            description="Cria uma tag, grava o URL dela num autocolante NFC e cola-o onde fizer sentido."
+            description="Cria tags a partir de cada tarefa, em Tarefas → tarefa → Adicionar tag."
             action={
-              <Button size="xl" className="rounded-full" onClick={() => openSheet(null)}>
-                <Plus /> Criar tag
+              <Button asChild size="xl" className="rounded-full">
+                <Link href="/tarefas">
+                  <ListChecks /> Ir para Tarefas
+                </Link>
               </Button>
             }
           />

@@ -49,3 +49,18 @@ function unwrapItem<T>(body: unknown, key: string): T {
   if (record && key in record && typeof record[key] === "object") return record[key] as T;
   return body as T;
 }
+
+/** Deletes every tag and task, for specs that need empty lists (single worker). */
+export async function deleteAllTasksAndTags(request: APIRequestContext) {
+  const tags = unwrapList<TagDto>(await (await request.get("/api/tags")).json(), "tags");
+  for (const tag of tags) expect((await request.delete(`/api/tags/${tag.id}`)).ok()).toBeTruthy();
+  const tasks = unwrapList<TaskDto>(await (await request.get("/api/tasks")).json(), "tasks");
+  for (const task of tasks) expect((await request.delete(`/api/tasks/${task.id}`)).ok()).toBeTruthy();
+}
+
+/** List routes may answer with a bare array or with `{ <key>: [...] }`. */
+function unwrapList<T>(body: unknown, key: string): T[] {
+  if (Array.isArray(body)) return body as T[];
+  const value = (body as Record<string, unknown> | null)?.[key];
+  return Array.isArray(value) ? (value as T[]) : [];
+}
