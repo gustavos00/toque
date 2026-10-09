@@ -18,6 +18,14 @@ import { ListSkeleton, LoadError } from "./status";
 import { Stepper } from "./stepper";
 
 const NTFY_TOPIC_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+/** The topic is the only secret on ntfy.sh, so short ones get a warning. */
+const NTFY_SAFE_TOPIC_LENGTH = 20;
+const TOPIC_ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
+
+function createRandomTopic() {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return `toque-${Array.from(bytes, (byte) => TOPIC_ALPHABET[byte % TOPIC_ALPHABET.length]).join("")}`;
+}
 
 export function SettingsView() {
   const { data: settings, error, isLoading, mutate } = useSettings();
@@ -176,7 +184,9 @@ function NtfySection({
   onSave: (patch: { topic?: string | null; server?: string }) => void;
 }) {
   const [draft, setDraft] = useState(topic ?? "");
+  const [suggestion] = useState(createRandomTopic);
   const isValid = draft === "" || NTFY_TOPIC_PATTERN.test(draft);
+  const isShort = topic !== null && topic.length < NTFY_SAFE_TOPIC_LENGTH;
   const subscribeUrl = topic ? `${server.replace(/\/$/, "")}/${topic}` : null;
 
   function commitTopic() {
@@ -186,13 +196,21 @@ function NtfySection({
     toast.success(next ? "Tópico guardado" : "Avisos desligados");
   }
 
+  function applySuggestion() {
+    setDraft(suggestion);
+    onSave({ topic: suggestion });
+    toast.success("Tópico guardado");
+  }
+
   return (
     <ListSection
       title="Notificações (ntfy)"
       footer={
         !isValid
           ? "Só letras, números, _ e -."
-          : "Quem souber o tópico recebe os teus avisos: usa um nome difícil de adivinhar."
+          : isShort
+            ? "Este tópico é curto e fácil de adivinhar: quem o souber recebe os teus avisos. Usa um mais longo."
+            : "Quem souber o tópico recebe os teus avisos: usa um nome difícil de adivinhar."
       }
     >
       <ListField label="Tópico" htmlFor="ntfy-topic">
@@ -211,10 +229,24 @@ function NtfySection({
           className="text-right text-muted-foreground aria-invalid:text-destructive"
         />
       </ListField>
-      {topic && (
+      {topic ? (
         <div className="flex items-center justify-between gap-3 border-b border-separator py-2 pr-2 pl-4">
           <p className="min-w-0 truncate font-mono text-[15px]">{topic}</p>
           <CopyButton value={topic} label="Copiar" />
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-3 border-b border-separator py-2 pr-2 pl-4">
+          <div className="min-w-0">
+            <p className="text-[13px] text-muted-foreground">Sugestão segura</p>
+            <p className="truncate font-mono text-[15px]">{suggestion}</p>
+          </div>
+          <button
+            type="button"
+            onClick={applySuggestion}
+            className="min-h-11 shrink-0 px-2 text-[15px] font-medium text-primary active:opacity-60"
+          >
+            Usar
+          </button>
         </div>
       )}
       <div className="px-4 py-3">
