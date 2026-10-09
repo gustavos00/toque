@@ -1,6 +1,6 @@
 // Protects the app pages: no valid session → redirect to /login?next=<path>.
 // Not applied to /api (route handlers answer 401 themselves), /t/<token>
-// (the tag token is the credential), /login, Next internals and any file
+// (the tag token is the credential), /login, /privacidade, Next internals and any file
 // with an extension (manifest, icons, service worker…).
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -21,5 +21,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api/|t/|_next/|login|.*\\..*).*)"],
+  matcher: ["/((?!api/|t/|_next/|login|privacidade|.*\\..*).*)"],
 };
