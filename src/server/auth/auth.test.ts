@@ -94,6 +94,14 @@ describe("password", () => {
     vi.stubEnv("NODE_ENV", "production");
     expect(() => isPasswordCorrect("toque")).toThrow(/TOQUE_PASSWORD/);
   });
+
+  it("uses the public demo password in demo mode, ignoring TOQUE_PASSWORD", () => {
+    vi.stubEnv("NEXT_PUBLIC_TOQUE_DEMO", "1");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("TOQUE_PASSWORD", "segredo");
+    expect(isPasswordCorrect("demo")).toBe(true);
+    expect(isPasswordCorrect("segredo")).toBe(false);
+  });
 });
 
 describe("requireSession", () => {

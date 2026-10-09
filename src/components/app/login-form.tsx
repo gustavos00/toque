@@ -4,6 +4,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { ApiRequestError, getErrorMessage, login } from "@/lib/api";
+import { DEMO_PASSWORD, isDemoMode } from "@/shared/demo";
 
 /** Only same-site paths are allowed as the post-login destination. */
 function getSafeNext() {
@@ -12,8 +13,9 @@ function getSafeNext() {
 }
 
 export function LoginForm() {
-  const [password, setPassword] = useState("");
-  const [isVisible, setIsVisible] = useState(false);
+  const isDemo = isDemoMode();
+  const [password, setPassword] = useState(isDemo ? DEMO_PASSWORD : "");
+  const [isVisible, setIsVisible] = useState(isDemo);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -62,6 +64,11 @@ export function LoginForm() {
       <p role="alert" className="min-h-6 px-4 pt-1.5 text-[14px] text-destructive">
         {problem}
       </p>
+      {isDemo && !problem && (
+        <p className="-mt-6 min-h-6 px-4 pt-1.5 text-[14px] text-muted-foreground">
+          Versão de demonstração: a palavra-passe já está preenchida.
+        </p>
+      )}
       <Button type="submit" size="xl" className="mt-2 w-full" disabled={!password || isSubmitting}>
         {isSubmitting && <Loader2 className="animate-spin" />}
         Entrar
