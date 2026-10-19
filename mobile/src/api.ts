@@ -24,7 +24,7 @@ export function getApiUrl(): string {
   const url =
     process.env.EXPO_PUBLIC_API_URL ??
     (Constants.expoConfig?.extra?.apiUrl as string | undefined) ??
-    "http://localhost:3000";
+    "https://toque-two.vercel.app";
   return url.replace(/\/+$/, "");
 }
 
