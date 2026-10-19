@@ -39,6 +39,8 @@
     ".next-demo/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "mobile",
+    ".next-demo"
   ]
 }

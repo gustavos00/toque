@@ -1,7 +1,7 @@
 // GET /api/google/connect — starts the Google OAuth consent.
 // 302 → accounts.google.com (signed `state`, no cookie), or
-// 302 → /definicoes?google=config when the server lacks Google env, or
-// 302 → /definicoes?google=demo on the public demo.
+// 302 → toque://definicoes?google=config when the server lacks Google env, or
+// 302 → toque://definicoes?google=demo on the public demo.
 
 import { NextResponse, type NextRequest } from "next/server";
 import { requireSession } from "@/server/auth";
@@ -18,14 +18,14 @@ export async function GET(request: NextRequest) {
   if (denied) return denied;
   if (isDemoMode()) {
     return NextResponse.redirect(
-      new URL("/definicoes?google=demo", request.url),
+      new URL("toque://definicoes?google=demo"),
       302,
     );
   }
 
   if (!isGoogleConfigured()) {
     return NextResponse.redirect(
-      new URL("/definicoes?google=config", request.url),
+      new URL("toque://definicoes?google=config"),
       302,
     );
   }

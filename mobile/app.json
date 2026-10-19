@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Toque",
+    "slug": "toque",
+    "scheme": "toque",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "com.gustavo.toque",
+      "supportsTablet": false,
+      "associatedDomains": [
+        "applinks:toque-two.vercel.app"
+      ],
+      "infoPlist": {
+        "NFCReaderUsageDescription": "A Toque lê e grava etiquetas NFC das tarefas"
+      },
+      "entitlements": {
+        "com.apple.developer.nfc.readersession.formats": [
+          "NDEF"
+        ]
+      }
+    },
+    "android": {
+      "package": "com.gustavo.toque"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-notifications",
+      [
+        "react-native-nfc-manager",
+        {
+          "nfcPermission": "A Toque lê e grava etiquetas NFC das tarefas",
+          "includeNdefEntitlement": true
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "http://localhost:3000"
+    }
+  }
+}

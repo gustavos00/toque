@@ -1,7 +1,7 @@
 // GET /api/google/callback?code=&state= — Google redirects here after
-// consent. No session (the PWA and Safari may not share cookies): the signed,
+// consent. No session (the app and Safari may not share cookies): the signed,
 // 10-minute `state` from /api/google/connect is the check. Stores the tokens,
-// creates the "Toque" calendar, then 302 → /definicoes?google=ok|erro|config
+// creates the "Toque" calendar, then 302 → toque://definicoes (the app's deep link)?google=ok|erro|config
 // (or =demo on the public demo, without touching anything).
 // The first full sync runs after the response (after()), best effort.
 
@@ -21,9 +21,9 @@ import {
 
 type Outcome = "ok" | "erro" | "config" | "demo";
 
-function redirectToSettings(request: NextRequest, outcome: Outcome) {
+function redirectToSettings(_request: NextRequest, outcome: Outcome) {
   return NextResponse.redirect(
-    new URL(`/definicoes?google=${outcome}`, request.url),
+    new URL(`toque://definicoes?google=${outcome}`),
     302,
   );
 }

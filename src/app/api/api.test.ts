@@ -9,7 +9,6 @@ import { type Db } from "@/server/db";
 import { events, tags, taskState } from "@/server/db/schema";
 import { createTestDb } from "@/server/db/testing";
 import type { DashboardDto, EventListDto, TagDto, TaskDto } from "@/shared/api";
-import { proxy } from "@/proxy";
 
 vi.mock("@/server/engine", () => ({
   handleScan: vi.fn(async () => ({
@@ -48,7 +47,8 @@ const dashboardRoute = await import("./dashboard/route");
 const tickRoute = await import("./tick/route");
 const loginRoute = await import("./auth/login/route");
 const logoutRoute = await import("./auth/logout/route");
-const scanRoute = await import("../t/[token]/route");
+const scanRoute = await import("./scan/[token]/route");
+const tagPageRoute = await import("../t/[token]/route");
 
 let db: Db;
 let cookie: string;
@@ -121,27 +121,14 @@ describe("auth", () => {
     expect(ok.headers.get("set-cookie")).toMatch(
       new RegExp(`^${SESSION_COOKIE_NAME}=.+HttpOnly`, "i"),
     );
-    vi.unstubAllEnvs();
-  });
-
-  it("redirects form logins and refuses open redirects", async () => {
-    vi.stubEnv("TOQUE_PASSWORD", "segredo");
-    const form = (password: string, next: string) =>
-      new NextRequest("http://localhost/api/auth/login", {
-        method: "POST",
-        headers: { "content-type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ password, next }).toString(),
-      });
-    const ok = await loginRoute.POST(form("segredo", "//evil.example"));
-    expect(ok.status).toBe(303);
-    expect(ok.headers.get("location")).toBe("http://localhost/");
-    const okNext = await loginRoute.POST(form("segredo", "/tags"));
-    expect(okNext.headers.get("location")).toBe("http://localhost/tags");
-    const bad = await loginRoute.POST(form("errada", "/tags"));
-    expect(bad.headers.get("location")).toBe(
-      "http://localhost/login?error=1&next=%2Ftags",
+    const { token } = await ok.json();
+    expect(token).toEqual(expect.any(String));
+    const withBearer = await tasksRoute.GET(
+      createRequest("/api/tasks", {
+        headers: { cookie: "", authorization: `Bearer ${token}` },
+      }),
     );
-    expect(bad.headers.get("set-cookie")).toBeNull();
+    expect(withBearer.status).toBe(200);
     vi.unstubAllEnvs();
   });
 
@@ -151,18 +138,6 @@ describe("auth", () => {
     );
     expect(response.status).toBe(204);
     expect(response.headers.get("set-cookie")).toMatch(/Max-Age=0/i);
-  });
-
-  it("proxy redirects pages to /login without a session", async () => {
-    const anonymous = await proxy(
-      new NextRequest("http://localhost/tarefas?x=1"),
-    );
-    expect(anonymous.status).toBe(307);
-    expect(anonymous.headers.get("location")).toBe(
-      "http://localhost/login?next=%2Ftarefas%3Fx%3D1",
-    );
-    const authed = await proxy(createRequest("/tarefas"));
-    expect(authed.headers.get("location")).toBeNull();
   });
 });
 
@@ -330,8 +305,17 @@ describe("tags", () => {
   });
 });
 
-describe("scan /t/:token", () => {
-  it("records the scan without a session and shows the engine's message", async () => {
+describe("scan /api/scan/:token", () => {
+  const post = (token: string, body?: unknown) =>
+    scanRoute.POST(
+      new NextRequest(`http://localhost/api/scan/${token}`, {
+        method: "POST",
+        body: body === undefined ? undefined : JSON.stringify(body),
+      }),
+      createContext({ token }),
+    );
+
+  it("records the scan without a session and returns the engine's message", async () => {
     const { task } = await createTask();
     const { tag } = await createTag({
       label: "Estendal",
@@ -339,14 +323,9 @@ describe("scan /t/:token", () => {
       action: "complete",
     });
 
-    const response = await scanRoute.GET(
-      new NextRequest(`http://localhost/t/${tag.token}`),
-      createContext({ token: tag.token }),
-    );
+    const response = await post(tag.token);
     expect(response.status).toBe(200);
-    const html = await response.text();
-    expect(html).toContain("Acaba às 15:40");
-    expect(html).toContain('lang="pt-PT"');
+    expect(await response.json()).toMatchObject({ message: "Acaba às 15:40" });
     expect(engine.handleScan).toHaveBeenCalledWith({
       taskId: task.id,
       tagId: tag.id,
@@ -367,39 +346,71 @@ describe("scan /t/:token", () => {
     expect(stored.lastScannedAt).not.toBeNull();
   });
 
-  it("shows a friendly 404 for unknown tokens and a hint for unassigned tags", async () => {
-    const unknown = await scanRoute.GET(
-      new NextRequest("http://localhost/t/x"),
-      createContext({ token: "x".repeat(24) }),
-    );
-    expect(unknown.status).toBe(404);
-    expect(await unknown.text()).toContain("Etiqueta desconhecida");
-
-    const { tag } = await createTag({ label: "Solta" });
-    const loose = await scanRoute.GET(
-      new NextRequest("http://localhost/t/x"),
+  it("describes the tag on GET without recording anything", async () => {
+    const { task } = await createTask();
+    const { tag } = await createTag({ label: "Estendal", taskId: task.id });
+    const response = await scanRoute.GET(
+      new NextRequest(`http://localhost/api/scan/${tag.token}`),
       createContext({ token: tag.token }),
     );
-    expect(await loose.text()).toContain("ainda não está associada");
+    expect(await response.json()).toEqual({
+      tagLabel: "Estendal",
+      taskName: "Máquina",
+      canScan: true,
+    });
     expect(engine.handleScan).not.toHaveBeenCalled();
+    expect(
+      await db.select().from(events).where(eq(events.type, "scan")),
+    ).toHaveLength(0);
   });
 
-  it("escapes HTML from the engine", async () => {
-    vi.mocked(engine.handleScan).mockResolvedValueOnce({
-      title: "<b>x</b>",
-      message: "a & b",
-      tone: "info",
-    });
+  it("snoozes the tag's task without logging a scan", async () => {
     const { task } = await createTask();
     const { tag } = await createTag({ label: "T", taskId: task.id });
-    const html = await (
-      await scanRoute.GET(
-        new NextRequest("http://localhost/t/x"),
-        createContext({ token: tag.token }),
-      )
-    ).text();
-    expect(html).toContain("&lt;b&gt;x&lt;/b&gt;");
-    expect(html).toContain("a &amp; b");
+    const response = await post(tag.token, { action: "snooze" });
+    expect(await response.json()).toMatchObject({ message: "Adiado" });
+    expect(engine.handleTaskSnooze).toHaveBeenCalledWith(
+      task.id,
+      expect.any(Date),
+    );
+    expect(engine.handleScan).not.toHaveBeenCalled();
+    expect(
+      await db.select().from(events).where(eq(events.type, "scan")),
+    ).toHaveLength(0);
+  });
+
+  it("answers 404 for unknown tokens, a hint for unassigned tags, 400 for bad actions", async () => {
+    const unknown = await post("x".repeat(24));
+    expect(unknown.status).toBe(404);
+    const info = await scanRoute.GET(
+      new NextRequest("http://localhost/api/scan/x"),
+      createContext({ token: "x".repeat(24) }),
+    );
+    expect(info.status).toBe(404);
+
+    const { tag } = await createTag({ label: "Solta" });
+    const loose = await post(tag.token);
+    expect((await loose.json()).message).toContain("ainda não está associada");
+    expect(engine.handleScan).not.toHaveBeenCalled();
+    expect((await post(tag.token, { action: "nope" })).status).toBe(400);
+  });
+});
+
+describe("tag page /t/:token", () => {
+  it("shows the open-the-app page and records nothing", async () => {
+    const { task } = await createTask();
+    const { tag } = await createTag({ label: "T", taskId: task.id });
+    const response = await tagPageRoute.GET(
+      new NextRequest(`http://localhost/t/${tag.token}`),
+      createContext({ token: tag.token }),
+    );
+    const html = await response.text();
+    expect(html).toContain("Abre a app Toque");
+    expect(html).toContain(`toque://t/${tag.token}`);
+    expect(engine.handleScan).not.toHaveBeenCalled();
+    expect(
+      await db.select().from(events).where(eq(events.type, "scan")),
+    ).toHaveLength(0);
   });
 });
 

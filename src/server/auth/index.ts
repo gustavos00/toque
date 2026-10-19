@@ -24,9 +24,23 @@ export {
 } from "./session";
 export { isPasswordCorrect } from "./password";
 
-/** Is the request carrying a valid session cookie? */
+/** The token from `Authorization: Bearer <token>`, if present. */
+function readBearerToken(request: NextRequest): string | undefined {
+  const match = /^Bearer\s+(\S+)$/i.exec(
+    request.headers.get("authorization") ?? "",
+  );
+  return match?.[1];
+}
+
+/**
+ * Is the request carrying a valid session, as the cookie (web) or as an
+ * `Authorization: Bearer` header (native app)? Both hold the same JWT.
+ */
 export async function hasSession(request: NextRequest): Promise<boolean> {
-  return isSessionTokenValid(request.cookies.get(SESSION_COOKIE_NAME)?.value);
+  const token =
+    request.cookies.get(SESSION_COOKIE_NAME)?.value ??
+    readBearerToken(request);
+  return isSessionTokenValid(token);
 }
 
 /**

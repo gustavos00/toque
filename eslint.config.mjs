@@ -10,6 +10,8 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    // Separate Expo project with its own tooling.
+    "mobile/**",
     // Separate build dir for the demo (TOQUE_DIST_DIR=.next-demo).
     ".next-demo/**",
     "out/**",

@@ -20,7 +20,11 @@ function escapeHtml(value: string) {
     .replaceAll("'", "&#39;");
 }
 
-export function renderScanPage(result: ScanResult, status = 200): Response {
+export function renderScanPage(
+  result: ScanResult,
+  status = 200,
+  link: { href: string; label: string } = { href: "/", label: "Abrir o Toque" },
+): Response {
   const { icon, color } = TONE_STYLES[result.tone];
   const title = escapeHtml(result.title);
   const message = escapeHtml(result.message);
@@ -54,7 +58,7 @@ export function renderScanPage(result: ScanResult, status = 200): Response {
   <div class="icon" aria-hidden="true">${icon}</div>
   <h1>${title}</h1>
   <p>${message}</p>
-  <a href="/">Abrir o Toque</a>
+  <a href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a>
 </main>
 </body>
 </html>`;

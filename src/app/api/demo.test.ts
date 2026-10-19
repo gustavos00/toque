@@ -43,7 +43,7 @@ const resyncRoute = await import("./google/resync/route");
 const settingsRoute = await import("./settings/route");
 const appInfoRoute = await import("./app-info/route");
 const tasksRoute = await import("./tasks/route");
-const scanRoute = await import("../t/[token]/route");
+const scanRoute = await import("./scan/[token]/route");
 
 const fetchMock = vi.fn();
 let db: Db;
@@ -106,7 +106,7 @@ describe("Google is blocked", () => {
       createRequest("/api/google/connect"),
     );
     expect(connect.headers.get("location")).toBe(
-      "https://demo.example.pt/definicoes?google=demo",
+      "toque://definicoes?google=demo",
     );
     const callback = await callbackRoute.GET(
       createRequest("/api/google/callback?code=c&state=s", {
@@ -114,7 +114,7 @@ describe("Google is blocked", () => {
       }),
     );
     expect(callback.headers.get("location")).toBe(
-      "https://demo.example.pt/definicoes?google=demo",
+      "toque://definicoes?google=demo",
     );
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -215,8 +215,9 @@ describe("no device details", () => {
       .insert(tags)
       .values({ token: "d".repeat(24), label: "T", taskId: task.id })
       .returning();
-    await scanRoute.GET(
-      new NextRequest(`https://demo.example.pt/t/${tag.token}`, {
+    await scanRoute.POST(
+      new NextRequest(`https://demo.example.pt/api/scan/${tag.token}`, {
+        method: "POST",
         headers: { "user-agent": "Mozilla/5.0 (iPhone)" },
       }),
       { params: Promise.resolve({ token: tag.token }) },

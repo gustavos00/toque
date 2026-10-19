@@ -104,7 +104,7 @@ describe("connect", () => {
       createRequest("/api/google/connect"),
     );
     expect(response.headers.get("location")).toBe(
-      "https://toque.example.pt/definicoes?google=config",
+      "toque://definicoes?google=config",
     );
   });
 });
@@ -116,7 +116,7 @@ describe("callback", () => {
         createRequest(`/api/google/callback${query}`, "GET", false),
       );
       expect(response.headers.get("location")).toBe(
-        "https://toque.example.pt/definicoes?google=erro",
+        "toque://definicoes?google=erro",
       );
     }
     expect(fetchMock).not.toHaveBeenCalled();
@@ -143,7 +143,7 @@ describe("callback", () => {
       createRequest(`/api/google/callback?code=c&state=${state}`, "GET", false),
     );
     expect(response.headers.get("location")).toBe(
-      "https://toque.example.pt/definicoes?google=ok",
+      "toque://definicoes?google=ok",
     );
     expect(calendar.ensureToqueCalendar).toHaveBeenCalledOnce();
     await Promise.all(afterTasks.splice(0));

@@ -53,23 +53,13 @@ Não use a opção de "palavra-passe" do NFC Tools: o iPhone deixa de conseguir 
 ## 5. Como o iPhone abre o link
 
 - Com o iPhone **desbloqueado** e o ecrã ligado, encoste o topo traseiro do telemóvel à tag.
-- Aparece uma notificação do sistema; toque nela e o Safari (ou o Toque, se estiver instalado no ecrã principal) abre `https://…/t/<token>` e mostra a confirmação em português.
+- Com a app Toque instalada, o iOS abre-a diretamente (Universal Link `https://…/t/<token>`) num pequeno painel "tarefa · Feito / Adiar". O toque só fica registado quando escolhe **Feito**.
+- Sem a app, abre-se uma página mínima "Abre a app Toque" no Safari.
 - Não funciona com o ecrã desligado, com a câmara aberta, durante uma chamada, nem no Centro de Controlo/Wallet.
 
-## 6. Atalho opcional: registar sem abrir o Safari
+## 6. Gravar e ler tags na própria app
 
-Se preferir que o toque fique registado **sem abrir nenhuma página**, use uma automação da app **Atalhos**:
-
-1. Atalhos → **Automação** → **+** → **NFC**.
-2. Toque em **Ler** e encoste a tag; dê-lhe um nome (ex.: "Máquina").
-3. Escolha **Executar imediatamente** e desligue "Notificar ao executar" se não quiser o aviso.
-4. Ação: **Obter conteúdo do URL** com o endereço completo da tag (`https://…/t/<token>`), método **GET**.
-5. (Opcional) Acrescente **Mostrar notificação** com o texto "Toque registado".
-
-Notas:
-
-- Com a automação, a tag pode continuar a ter o URL gravado — se a automação não correr (iPhone de outra pessoa), o link abre normalmente no Safari.
-- A automação NFC só reage com o iPhone desbloqueado.
+No ecrã **Associar tag** da app, **Gravar tag** escreve o URL `https://…/t/<token>` da tag (um único registo NDEF) e **Ler tag** mostra o que a tag já contém. Não é preciso nenhuma app externa.
 
 ## 7. Onde colar
 

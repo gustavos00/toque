@@ -119,3 +119,30 @@ describe("requireSession", () => {
     expect(await requireSession(authed)).toBeNull();
   });
 });
+
+describe("bearer sessions", () => {
+  const url = "http://localhost/api/tasks";
+
+  it("accepts a valid Bearer token in place of the cookie", async () => {
+    const token = await createSessionToken();
+    const request = new NextRequest(url, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(await hasSession(request)).toBe(true);
+    expect(await requireSession(request)).toBeNull();
+  });
+
+  it("rejects invalid, malformed or other-scheme Authorization headers", async () => {
+    const token = await createSessionToken();
+    for (const authorization of [
+      "Bearer nope",
+      "Bearer",
+      `Basic ${token}`,
+      token,
+    ]) {
+      const request = new NextRequest(url, { headers: { authorization } });
+      expect(await hasSession(request)).toBe(false);
+      expect((await requireSession(request))?.status).toBe(401);
+    }
+  });
+});
