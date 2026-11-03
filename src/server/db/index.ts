@@ -46,7 +46,11 @@ export function setDb(db: Db) {
 function createConfiguredDb(): Promise<Db> {
   const databaseUrl = process.env.DATABASE_URL;
   if (databaseUrl) return Promise.resolve(createNeonDb(databaseUrl));
-  const dataDir = process.env.TOQUE_PGLITE_DIR || DEFAULT_PGLITE_DIR;
+  // A Vercel preview has no database of its own and a read-only disk: it runs
+  // on a throwaway in-memory PGlite. Production never gets here without Neon
+  // (scripts/migrate.mjs fails its build).
+  const fallbackDir = process.env.VERCEL ? PGLITE_MEMORY : DEFAULT_PGLITE_DIR;
+  const dataDir = process.env.TOQUE_PGLITE_DIR || fallbackDir;
   return createPgliteDb(dataDir === PGLITE_MEMORY ? undefined : dataDir);
 }
 

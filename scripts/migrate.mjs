@@ -8,11 +8,16 @@ import path from "node:path";
 const migrationsFolder = path.join(process.cwd(), "drizzle");
 const databaseUrl = process.env.DATABASE_URL;
 
-// On Vercel the build runs this before `next build` (see vercel.json); never
-// fall back to a throwaway PGlite there.
+// On Vercel the build runs this before `next build` (see vercel.json). Production
+// must have Neon. A preview without a database runs on an in-memory PGlite that
+// migrates itself on first use (src/server/db/index.ts), so there is nothing to do.
 if (process.env.VERCEL && !databaseUrl) {
-  console.error("DATABASE_URL is missing: connect the Neon database to the project (prefix DATABASE).");
-  process.exit(1);
+  if (process.env.VERCEL_ENV === "production") {
+    console.error("DATABASE_URL is missing: connect the Neon database to the project (prefix DATABASE).");
+    process.exit(1);
+  }
+  console.log("No DATABASE_URL on this preview: it runs on an in-memory PGlite.");
+  process.exit(0);
 }
 
 if (databaseUrl) {
