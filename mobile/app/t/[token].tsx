@@ -1,15 +1,10 @@
 // Opened by the Universal Link https://<domain>/t/<token> (or toque://t/<token>): a small
-// popup "<task> · Feito / Adiar". The scan is only recorded when the user taps "Feito".
+// sheet "<task> · Done / Snooze". The scan is only recorded when the user taps "Done".
 
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Button, colors, fonts } from "../../src/components/ui";
 import { syncReminderNotifications } from "../../src/notifications";
 import {
   fetchTagScanInfo,
@@ -18,7 +13,7 @@ import {
   type TagScanInfo,
 } from "../../src/scan";
 
-export default function TagPopup() {
+export default function TagSheet() {
   const { token } = useLocalSearchParams<{ token: string }>();
   const [info, setInfo] = useState<TagScanInfo | null | undefined>(undefined);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -41,7 +36,7 @@ export default function TagPopup() {
       setResult(await postTagAction(token, action));
       void syncReminderNotifications();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro");
+      setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setBusy(false);
     }
@@ -52,44 +47,37 @@ export default function TagPopup() {
     else router.replace("/");
   }
 
-  const title = result?.title ?? info?.taskName ?? info?.tagLabel ?? "Etiqueta";
+  const title = result?.title ?? info?.taskName ?? info?.tagLabel ?? "Tag";
+  const message =
+    error ??
+    result?.message ??
+    (info === null
+      ? "This tag is not known."
+      : info?.canScan
+        ? "What would you like to do?"
+        : "This tag has no active task.");
+
   return (
     <View style={styles.backdrop}>
+      <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel="Close" />
       <View style={styles.sheet}>
         {info === undefined ? (
-          <ActivityIndicator />
+          <ActivityIndicator color={colors.soft} />
         ) : (
           <>
+            {info?.tagLabel ? <Text style={styles.eyebrow}>{info.tagLabel}</Text> : null}
             <Text style={styles.title}>{title}</Text>
-            <Text style={styles.message}>
-              {error ??
-                result?.message ??
-                (info === null
-                  ? "Etiqueta desconhecida."
-                  : info.canScan
-                    ? "O que queres fazer?"
-                    : "Esta etiqueta não tem uma tarefa ativa.")}
-            </Text>
+            <Text style={styles.message}>{message}</Text>
             {result || !info?.canScan ? (
-              <Pressable style={styles.primary} onPress={close}>
-                <Text style={styles.primaryText}>Fechar</Text>
-              </Pressable>
+              <Button title="Close" tone="secondary" onPress={close} />
             ) : (
               <View style={styles.row}>
-                <Pressable
-                  style={[styles.secondary, busy && styles.disabled]}
-                  disabled={busy}
-                  onPress={() => act("snooze")}
-                >
-                  <Text style={styles.secondaryText}>Adiar</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.primary, busy && styles.disabled]}
-                  disabled={busy}
-                  onPress={() => act("done")}
-                >
-                  <Text style={styles.primaryText}>Feito</Text>
-                </Pressable>
+                <View style={{ flex: 1 }}>
+                  <Button title="Snooze" tone="secondary" disabled={busy} onPress={() => act("snooze")} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button title="Done" disabled={busy} onPress={() => act("done")} />
+                </View>
               </View>
             )}
           </>
@@ -103,34 +91,25 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.6)",
   },
   sheet: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.raised,
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.rule,
     padding: 24,
-    paddingBottom: 40,
-    gap: 12,
+    paddingBottom: 36,
   },
-  title: { fontSize: 24, fontWeight: "700" },
-  message: { fontSize: 17, color: "#5b5b61" },
-  row: { flexDirection: "row", gap: 12, marginTop: 8 },
-  primary: {
-    flex: 1,
-    backgroundColor: "#007ea6",
-    borderRadius: 14,
-    padding: 16,
-    alignItems: "center",
+  eyebrow: {
+    fontSize: 12,
+    color: colors.faint,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginBottom: 8,
   },
-  primaryText: { color: "#fff", fontSize: 17, fontWeight: "600" },
-  secondary: {
-    flex: 1,
-    backgroundColor: "#e5e5ea",
-    borderRadius: 14,
-    padding: 16,
-    alignItems: "center",
-  },
-  secondaryText: { fontSize: 17, fontWeight: "600" },
-  disabled: { opacity: 0.5 },
+  title: { fontFamily: fonts.serif, fontSize: 30, color: colors.text, marginBottom: 8 },
+  message: { fontSize: 17, lineHeight: 24, color: colors.soft, marginBottom: 28 },
+  row: { flexDirection: "row", gap: 12 },
 });

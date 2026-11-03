@@ -29,12 +29,12 @@ function trim() {
 
 function setup_app_secrets() {
   local password password_again cron_secret
-  read -r -s -p "Palavra-passe para entrar no Toque: " password
+  read -r -s -p "Password to sign in to Toque: " password
   echo
-  read -r -s -p "Repete a palavra-passe: " password_again
+  read -r -s -p "Repeat the password: " password_again
   echo
   if [[ "$password" != "$password_again" || -z "$password" ]]; then
-    echo "As palavras-passe não coincidem." >&2
+    echo "The passwords do not match." >&2
     exit 1
   fi
 
@@ -46,28 +46,28 @@ function setup_app_secrets() {
   add_env TOQUE_CRON_SECRET "$cron_secret"
 
   echo
-  echo "Guarda este segredo para o cron-job.org (cabeçalho Authorization):"
+  echo "Save this secret for cron-job.org (Authorization header):"
   echo "  Bearer $cron_secret"
   echo
-  echo "Feito. O tópico do ntfy escolhe-se depois, nas Definições da app."
+  echo "Done. The ntfy topic is chosen later, in the app Settings."
 }
 
 function setup_google() {
   local client_id client_secret answer
-  echo "Google Calendar — copia os valores do cliente OAuth (Google Cloud → APIs e serviços → Credenciais)."
+  echo "Google Calendar — copy the OAuth client values (Google Cloud → APIs & Services → Credentials)."
 
-  read -r -p "ID do cliente (…apps.googleusercontent.com): " client_id
+  read -r -p "Client ID (…apps.googleusercontent.com): " client_id
   client_id="$(trim "$client_id")"
   if [[ "$client_id" != *.apps.googleusercontent.com ]]; then
-    echo "Isto não parece um ID de cliente OAuth (deve terminar em .apps.googleusercontent.com)." >&2
+    echo "This does not look like an OAuth client ID (it must end in .apps.googleusercontent.com)." >&2
     exit 1
   fi
 
-  read -r -s -p "Segredo do cliente (não aparece no ecrã): " client_secret
+  read -r -s -p "Client secret (not shown on screen): " client_secret
   echo
   client_secret="$(trim "$client_secret")"
   if [[ -z "$client_secret" ]]; then
-    echo "O segredo do cliente não pode ficar vazio." >&2
+    echo "The client secret cannot be empty." >&2
     exit 1
   fi
 
@@ -77,25 +77,25 @@ function setup_google() {
   # The key encrypts the stored Google refresh token. A new key makes the
   # stored token unreadable, so an existing key is kept unless asked.
   if has_env TOQUE_ENCRYPTION_KEY; then
-    read -r -p "Já existe TOQUE_ENCRYPTION_KEY. Gerar uma nova? Vais ter de voltar a ligar ao Google. [s/N] " answer
-    if [[ "$answer" =~ ^[sS]$ ]]; then
+    read -r -p "TOQUE_ENCRYPTION_KEY already exists. Generate a new one? You will have to connect to Google again. [y/N] " answer
+    if [[ "$answer" =~ ^[yY]$ ]]; then
       add_env TOQUE_ENCRYPTION_KEY "$(openssl rand -base64 32)"
     else
-      echo "• TOQUE_ENCRYPTION_KEY mantida"
+      echo "• TOQUE_ENCRYPTION_KEY kept"
     fi
   else
     add_env TOQUE_ENCRYPTION_KEY "$(openssl rand -base64 32)"
   fi
 
   echo
-  echo "Feito. Faz Redeploy no Vercel e depois, no Toque: Definições → Ligar ao Google."
+  echo "Done. Redeploy on Vercel, then in Toque: Settings → Connect to Google."
 }
 
 case "${1:-}" in
   "") setup_app_secrets ;;
   --google) setup_google ;;
   *)
-    echo "Uso: bash scripts/setup-vercel-env.sh [--google]" >&2
+    echo "Usage: bash scripts/setup-vercel-env.sh [--google]" >&2
     exit 1
     ;;
 esac

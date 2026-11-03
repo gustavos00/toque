@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
   const db = await getDb();
   if (!isGoogleConnected(await getGoogleConnection(db))) {
-    return createErrorResponse(409, "Google Calendar não está ligado");
+    return createErrorResponse(409, "Google Calendar is not connected");
   }
   try {
     await syncAllCalendarEvents(new Date());
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     console.error("Calendar resync failed", error);
     return createErrorResponse(
       502,
-      "Não foi possível sincronizar com o Google Calendar",
+      "Could not sync with Google Calendar",
     );
   }
   return Response.json(await buildGoogleStatus(db));

@@ -12,8 +12,8 @@ export function createErrorResponse(
   return Response.json(body, { status });
 }
 
-export function createNotFoundResponse(what = "Recurso"): Response {
-  return createErrorResponse(404, `${what} não encontrado`);
+export function createNotFoundResponse(what = "Resource"): Response {
+  return createErrorResponse(404, `${what} not found`);
 }
 
 type ParseResult<T> = { ok: true; data: T } | { ok: false; response: Response };
@@ -27,7 +27,7 @@ export async function parseJsonBody<T extends z.ZodType>(
   try {
     raw = await request.json();
   } catch {
-    return { ok: false, response: createErrorResponse(400, "JSON inválido") };
+    return { ok: false, response: createErrorResponse(400, "Invalid JSON") };
   }
   return parseValue(raw, schema);
 }
@@ -43,7 +43,7 @@ export function parseValue<T extends z.ZodType>(
     ok: false,
     response: createErrorResponse(
       400,
-      "Dados inválidos",
+      "Invalid data",
       z.treeifyError(result.error),
     ),
   };
@@ -56,5 +56,5 @@ export function isUuid(value: string): boolean {
 
 /** 403 for features switched off on the public demo (Google, ntfy). */
 export function createDemoBlockedResponse(): Response {
-  return createErrorResponse(403, "Indisponível na demonstração");
+  return createErrorResponse(403, "Unavailable in the demo");
 }

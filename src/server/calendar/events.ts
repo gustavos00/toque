@@ -94,7 +94,7 @@ export function isPastEventKept(
 }
 
 /**
- * - timer: one event startedAt → endsAt while running or ready ("por tratar"); gone once handled.
+ * - timer: one event startedAt → endsAt while running or ready ("to handle"); gone once handled.
  *   A new start has a new key, so it replaces the old event.
  * - until_ack: each scheduled day from today through the horizon, at the first reminder time,
  *   30 min; today's disappears once acked. Exception dates never have one.
@@ -144,7 +144,7 @@ export function buildDesiredCalendarEvents(
             task,
             `until_ack:${date}`,
             createLocalInstant(date, firstTime),
-            "Toca na tag quando estiver feito (Toque).",
+            "Tap the tag when it's done (Toque).",
           ),
         );
       }
@@ -164,7 +164,7 @@ export function buildDesiredCalendarEvents(
             task,
             `recurring:${getLocalDate(occurrence)}`,
             occurrence,
-            "Toca na tag quando estiver feito (Toque).",
+            "Tap the tag when it's done (Toque).",
           ),
         );
         occurrence = getNextRecurringOccurrence(

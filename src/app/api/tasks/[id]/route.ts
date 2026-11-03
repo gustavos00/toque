@@ -32,10 +32,10 @@ export async function GET(
   if (denied) return denied;
 
   const { id } = await ctx.params;
-  if (!isUuid(id)) return createNotFoundResponse("Tarefa");
+  if (!isUuid(id)) return createNotFoundResponse("Task");
   const db = await getDb();
   const task = await getTaskById(db, id);
-  if (!task) return createNotFoundResponse("Tarefa");
+  if (!task) return createNotFoundResponse("Task");
   const [state] = await db
     .select()
     .from(taskState)
@@ -52,13 +52,13 @@ export async function PATCH(
   if (denied) return denied;
 
   const { id } = await ctx.params;
-  if (!isUuid(id)) return createNotFoundResponse("Tarefa");
+  if (!isUuid(id)) return createNotFoundResponse("Task");
   const parsed = await parseJsonBody(request, updateTaskRequestSchema);
   if (!parsed.ok) return parsed.response;
 
   const db = await getDb();
   const existing = await getTaskById(db, id);
-  if (!existing) return createNotFoundResponse("Tarefa");
+  if (!existing) return createNotFoundResponse("Task");
 
   const { name, enabled, kind, config } = parsed.data;
   const kindChanged = kind !== undefined && kind !== existing.kind;
@@ -109,10 +109,10 @@ export async function DELETE(
   if (denied) return denied;
 
   const { id } = await ctx.params;
-  if (!isUuid(id)) return createNotFoundResponse("Tarefa");
+  if (!isUuid(id)) return createNotFoundResponse("Task");
   const db = await getDb();
   const [deleted] = await db.delete(tasks).where(eq(tasks.id, id)).returning();
-  if (!deleted) return createNotFoundResponse("Tarefa");
+  if (!deleted) return createNotFoundResponse("Task");
   await db
     .insert(events)
     .values({ type: "task_deleted", data: { taskId: id, name: deleted.name } });

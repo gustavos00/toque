@@ -16,7 +16,7 @@ describe("buildDesiredCalendarEvents", () => {
     const task = createTestTask(
       "timer",
       { durationMinutes: 45 },
-      { name: "Máquina de lavar" },
+      { name: "Washing machine" },
     );
     const state = createTestState({
       timerStartedAt: at("2026-10-09", "14:55"),
@@ -28,7 +28,7 @@ describe("buildDesiredCalendarEvents", () => {
       at("2026-10-09", "15:00"),
     );
     expect(event.body).toMatchObject({
-      summary: "Máquina de lavar",
+      summary: "Washing machine",
       start: {
         dateTime: "2026-10-09T13:55:00.000Z",
         timeZone: "Europe/Lisbon",

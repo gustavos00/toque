@@ -54,7 +54,7 @@ export function createNtfyNotifier(options: NtfyOptions): Notifier {
         // Never echo the topic: it is a secret.
         const detail = (await response.text().catch(() => "")).slice(0, 200);
         throw new Error(
-          `ntfy respondeu ${response.status}${detail ? `: ${detail}` : ""}`,
+          `ntfy responded ${response.status}${detail ? `: ${detail}` : ""}`,
         );
       }
     },

@@ -20,27 +20,35 @@ export default function HistoryScreen() {
   }
 
   return (
-    <Screen title="Histórico">
-      <LoadState loading={loading} error={error} hasData={!!data} onRetry={() => {
-        setExtra([]);
-        setCursor(undefined);
-        void reload();
-      }} />
+    <Screen title="History">
+      <LoadState
+        loading={loading}
+        error={error}
+        hasData={!!data}
+        onRetry={() => {
+          setExtra([]);
+          setCursor(undefined);
+          void reload();
+        }}
+      />
       {data ? (
-        <Section>
-          {events.length === 0 ? (
-            <Empty title="Ainda não há registos." />
-          ) : (
-            events.map((e) => (
-              <Row
-                key={e.id}
-                title={formatEventSubject(e)}
-                subtitle={`${formatEventType(e)} · ${formatDayTime(e.at)}`}
-              />
-            ))
-          )}
-          {next ? <Button title="Carregar mais" onPress={loadMore} tone="plain" /> : null}
-        </Section>
+        <>
+          <Section>
+            {events.length === 0 ? (
+              <Empty title="Nothing logged yet" />
+            ) : (
+              events.map((e) => (
+                <Row
+                  key={e.id}
+                  title={formatEventSubject(e)}
+                  subtitle={formatEventType(e)}
+                  value={formatDayTime(e.at)}
+                />
+              ))
+            )}
+          </Section>
+          {next ? <Button title="Load more" onPress={loadMore} tone="secondary" /> : null}
+        </>
       ) : null}
     </Screen>
   );

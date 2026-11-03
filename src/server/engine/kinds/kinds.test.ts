@@ -20,7 +20,7 @@ describe("timer", () => {
   const task = createTestTask(
     "timer",
     { durationMinutes: 45, forgottenReminderMinutes: [60, 30] },
-    { name: "Máquina" },
+    { name: "Machine" },
   );
   const quiet = createTestTask("timer", {
     durationMinutes: 45,
@@ -36,8 +36,8 @@ describe("timer", () => {
   it("starts on the first scan", () => {
     const outcome = timerHandler.handleScan(task, createTestState(), start);
     expect(outcome.result).toEqual({
-      title: "Máquina",
-      message: "A contar 45 min · acaba às 15:40",
+      title: "Machine",
+      message: "Counting down 45 min · ends at 15:40",
       tone: "started",
     });
     expect(outcome.patch.timerEndsAt?.getTime()).toBe(
@@ -46,7 +46,7 @@ describe("timer", () => {
     expect(outcome.events[0].type).toBe("timer_started");
   });
 
-  it("plans the heads-up, 'pronto' (no Feito button) and sorted forgotten reminders by default", () => {
+  it("plans the heads-up, 'ready' (no Done button) and sorted forgotten reminders by default", () => {
     const rows = timerHandler.planNotifications(task, running, {
       now: start,
       settings,
@@ -60,8 +60,8 @@ describe("timer", () => {
       ["60", "16:40"],
     ]);
     expect(rows[0].payload).toMatchObject({
-      title: "Máquina quase a acabar",
-      message: "Faltam 10 min (acaba às 15:40).",
+      title: "Machine almost done",
+      message: "10 min left (ends at 15:40).",
       priority: 3,
     });
     expect(rows[0].expiresAt).toEqual(at("15:40"));
@@ -70,7 +70,7 @@ describe("timer", () => {
     expect(rows[3].payload.priority).toBe(5);
   });
 
-  it("only plans 'pronto' when the heads-up and reminders are disabled", () => {
+  it("only plans 'ready' when the heads-up and reminders are disabled", () => {
     const rows = timerHandler.planNotifications(quiet, running, {
       now: start,
       settings,
@@ -106,8 +106,8 @@ describe("timer", () => {
       patch: {},
       events: [],
       result: {
-        title: "Máquina",
-        message: "Já está a decorrer · acaba às 15:40",
+        title: "Machine",
+        message: "Already running · ends at 15:40",
         tone: "info",
       },
     });
@@ -128,7 +128,7 @@ describe("timer", () => {
     expect(next.some((row) => old.some((o) => o.key === row.key))).toBe(false);
   });
 
-  it("complete / 'Já tratei' after the end handles the cycle and stops its reminders", () => {
+  it("complete / 'Handled' after the end handles the cycle and stops its reminders", () => {
     const outcome = timerHandler.handleDone(task, running, at("16:00"));
     expect(outcome.result.tone).toBe("done");
     expect(outcome.patch).toEqual({
@@ -145,7 +145,7 @@ describe("timer", () => {
     ).toEqual([]);
     expect(
       timerHandler.handleDone(task, handled, at("16:05")).result,
-    ).toMatchObject({ tone: "info", message: "Nada por tratar." });
+    ).toMatchObject({ tone: "info", message: "Nothing to handle." });
   });
 
   it("complete while running or with no cycle is informational", () => {
@@ -153,11 +153,11 @@ describe("timer", () => {
       timerHandler.handleDone(task, running, at("15:00")).result,
     ).toMatchObject({
       tone: "info",
-      message: "Ainda está a decorrer · acaba às 15:40",
+      message: "Still running · ends at 15:40",
     });
     expect(
       timerHandler.handleDone(task, createTestState(), start).result.message,
-    ).toBe("Nada por tratar.");
+    ).toBe("Nothing to handle.");
   });
 });
 
@@ -206,7 +206,7 @@ describe("until_ack", () => {
     const outcome = untilAckHandler.handleScan(task, createTestState(), now);
     expect(outcome.result).toEqual({
       title: "Lixo",
-      message: "Feito por hoje. Próxima vez: qua, 14/10.",
+      message: "Done for today. Next time: Wed, 14/10.",
       tone: "done",
     });
     expect(outcome.patch.lastAckDate).toBe("2026-10-09");
@@ -276,7 +276,7 @@ describe("recurring", () => {
       "recurring_overdue",
       "recurring_overdue",
     ]);
-    expect(rows[0].payload.message).toBe("Era para qui, 08/10 — há 2 dias.");
+    expect(rows[0].payload.message).toBe("Was due Thu, 08/10 — 2 days ago.");
     expect(rows[1].dueAt).toEqual(createLocalInstant("2026-10-11", "09:00"));
   });
 
@@ -288,7 +288,7 @@ describe("recurring", () => {
       now,
     );
     expect(outcome.patch.lastDoneAt).toEqual(now);
-    expect(outcome.result.message).toBe("Feito. Próxima vez: sáb, 17/10.");
+    expect(outcome.result.message).toBe("Done. Next time: Sat, 17/10.");
   });
 });
 
@@ -297,7 +297,7 @@ describe("recurring — weekdays mode", () => {
   const task = createTestTask(
     "recurring",
     { mode: "weekdays", weekdays: [2, 4], reminderTime: "09:00" },
-    { name: "Plantas" },
+    { name: "Plants" },
   );
   const lastDoneAt = createLocalInstant("2026-10-08", "20:00"); // Thursday, covered
   const plan = (now: Date, done: Date | null = lastDoneAt) =>
@@ -324,7 +324,7 @@ describe("recurring — weekdays mode", () => {
     );
     expect(outcome.result).toMatchObject({
       tone: "done",
-      message: "Feito. Próxima vez: qui, 15/10.",
+      message: "Done. Next time: Thu, 15/10.",
     });
     expect(plan(now, now).map((row) => row.key)).toEqual([
       `recurring:${task.id}:2026-10-15:due`,
@@ -340,7 +340,7 @@ describe("recurring — weekdays mode", () => {
       ["recurring_due", "2026-10-15:due"],
     ]);
     expect(wednesday[0].payload.message).toBe(
-      "Era para ter, 13/10 — há 1 dia.",
+      "Was due Tue, 13/10 — 1 day ago.",
     );
 
     // Thursday after 09:00: the missed Tuesday collapses into Thursday's occurrence.

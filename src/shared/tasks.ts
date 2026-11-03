@@ -9,7 +9,7 @@ import { z } from "zod";
 /** "HH:MM", 24h, local time (Europe/Lisbon). */
 export const localTimeSchema = z
   .string()
-  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use o formato HH:MM");
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use the HH:MM format");
 
 /** "YYYY-MM-DD", local date (Europe/Lisbon). */
 export const localDateSchema = z.iso.date();
@@ -37,7 +37,7 @@ export const DEFAULT_RECURRING_REMINDER_TIME = "09:00";
  * timer — fire-and-forget: a scan of a "start" tag starts a countdown and the
  * user is notified when it ends. "Forgotten" reminders then follow at each
  * offset (minutes after the end) — on by default; stop at a "complete" tag
- * scan or the "Já tratei" button.
+ * scan or the "Handled" button.
  */
 export const timerConfigSchema = z
   .object({
@@ -69,7 +69,7 @@ export const timerConfigSchema = z
       !config.almostDoneEnabled ||
       config.almostDoneMinutes < config.durationMinutes,
     {
-      message: "O aviso tem de ser antes do fim",
+      message: "The warning must come before the end",
       path: ["almostDoneMinutes"],
     },
   );
@@ -99,7 +99,7 @@ export const untilAckConfigSchema = z
       .transform(sortUnique),
   })
   .refine((config) => config.weekdays.length > 0 || config.dates.length > 0, {
-    message: "Indique pelo menos um dia da semana ou uma data",
+    message: "Choose at least one weekday or a date",
     path: ["weekdays"],
   });
 export type UntilAckConfig = z.infer<typeof untilAckConfigSchema>;
@@ -120,7 +120,7 @@ const recurringWeekdaysConfigSchema = z.object({
   mode: z.literal("weekdays"),
   weekdays: z
     .array(isoWeekdaySchema)
-    .min(1, "Escolhe pelo menos um dia")
+    .min(1, "Choose at least one day")
     .transform(sortUnique),
   reminderTime: recurringReminderTimeSchema,
 });
@@ -144,7 +144,7 @@ function addRecurringMode(input: unknown): unknown {
   const config = input as Record<string, unknown>;
   if (config.mode !== undefined) {
     if (config.mode === "weekdays" && config.weekdays === undefined) {
-      return { ...config, weekdays: [] }; // → "Escolhe pelo menos um dia"
+      return { ...config, weekdays: [] }; // → "Choose at least one day"
     }
     return config;
   }

@@ -1,54 +1,54 @@
-# Demonstração pública
+# Public demo
 
-A demonstração é uma instalação à parte do Toque, aberta a qualquer pessoa, para experimentar a app sem mexer na instalação pessoal. Usa o **mesmo código** (mesmo repositório) com `NEXT_PUBLIC_TOQUE_DEMO=1`.
+The demo is a separate Toque installation, open to anyone, for trying the app without touching the personal installation. It uses the **same code** (same repository) with `NEXT_PUBLIC_TOQUE_DEMO=1`.
 
-## O que o visitante vê
+## What the visitor sees
 
-- **Login com a palavra-passe `demo` já preenchida** (e visível): basta carregar em **Entrar**. Em modo demo, a `TOQUE_PASSWORD` do servidor é ignorada — só `demo` entra.
-- Uma etiqueta **"Demonstração"** no cabeçalho de cada ecrã.
-- Tudo o que é das tarefas funciona: criar e editar tarefas, criar tags, abrir `/t/<token>` (o toque), painel e histórico.
+- **Login with the password `demo` already filled in** (and visible): just press **Sign in**. In demo mode the server's `TOQUE_PASSWORD` is ignored; only `demo` gets in.
+- A **"Demo"** label in the header of every screen.
+- Everything to do with tasks works: creating and editing tasks, creating tags, opening `/t/<token>` (the tap), dashboard and history.
 
-## O que está bloqueado
+## What is blocked
 
-| Funcionalidade | Na interface | No servidor |
+| Feature | In the interface | On the server |
 | --- | --- | --- |
-| **ntfy** (notificações) | O campo *Tópico* aparece desativado, com "Indisponível na demonstração". | Um `PATCH /api/settings` que mexa em `ntfy` responde **403** `{ "error": "Indisponível na demonstração" }`. O motor não envia nada (o notificador é um *no-op*). |
-| **Google Calendar** | A secção aparece, mas **Ligar ao Google** está desativado. | `/api/google/connect` e `/api/google/callback` redirecionam para `/definicoes?google=demo`; `resync` e `disconnect` respondem **403**. O calendário é um *no-op*. |
+| **ntfy** (notifications) | The *Topic* field appears disabled, with "Unavailable in the demo". | A `PATCH /api/settings` that touches `ntfy` answers **403** `{ "error": "Unavailable in the demo" }`. The engine sends nothing (the notifier is a no-op). |
+| **Google Calendar** | The section appears, but **Connect to Google** is disabled. | `/api/google/connect` and `/api/google/callback` redirect to `/definicoes?google=demo`; `resync` and `disconnect` answer **403**. The calendar is a no-op. |
 
-O resto das definições (horas de silêncio, valores por omissão) pode ser alterado.
+The rest of the settings (quiet hours, defaults) can be changed.
 
-## Dados apagados a cada 5 minutos
+## Data wiped every 5 minutes
 
-A base de dados da demonstração **limpa-se sozinha**: o primeiro pedido feito depois de passarem 5 minutos desde a última limpeza apaga **tarefas, tags, histórico, notificações pendentes e definições** (função `maybeResetDemoData`). Não há cron nem segredo envolvidos — é "preguiçoso": sem visitas, nada corre.
+The demo database **cleans itself**: the first request made after 5 minutes have passed since the last cleanup deletes **tasks, tags, history, pending notifications and settings** (function `maybeResetDemoData`). No cron or secret is involved; it is lazy, so with no visits nothing runs.
 
-Consequência: um visitante pode ver os dados desaparecer a meio da visita. Não guarde lá nada.
+Consequence: a visitor may see the data disappear in the middle of a visit. Don't store anything there.
 
-## Dados pessoais
+## Personal data
 
-A demonstração **não tem dados pessoais**: base de dados própria e vazia, sem tópico ntfy, sem ligação Google, e a palavra-passe é pública. Os segredos de sessão em modo demo são fixos e públicos de propósito (não protegem nada que importe); **nunca** ative `NEXT_PUBLIC_TOQUE_DEMO` na instalação pessoal.
+The demo **has no personal data**: its own empty database, no ntfy topic, no Google connection, and the password is public. The session secrets in demo mode are fixed and public on purpose (they protect nothing that matters); **never** enable `NEXT_PUBLIC_TOQUE_DEMO` on the personal installation.
 
-## Como está publicada
+## How it is published
 
-É um **segundo projeto Vercel** (`toque-demo`), ligado ao mesmo repositório, com a sua **própria base de dados Neon** (vazia):
+It is a **second Vercel project** (`toque-demo`), linked to the same repository, with its **own Neon database** (empty):
 
-1. Vercel → **Add New… → Project** → o mesmo repositório → nome `toque-demo`.
-2. **Storage → Create Database → Neon** (Free, Frankfurt), ligada só a `toque-demo`, prefixo `DATABASE` — ver [deploy.md](deploy.md), passo 3. **Não reutilize a base de dados pessoal.**
+1. Vercel → **Add New… → Project** → the same repository → name `toque-demo`.
+2. **Storage → Create Database → Neon** (Free, Frankfurt), connected only to `toque-demo`, prefix `DATABASE`; see [deploy.md](deploy.md), step 3. **Do not reuse the personal database.**
 3. **Settings → Environment Variables** (Production):
 
-   | Variável | Valor |
+   | Variable | Value |
    | --- | --- |
    | `NEXT_PUBLIC_TOQUE_DEMO` | `1` |
-   | `DATABASE_URL` | criada pelo Neon |
+   | `DATABASE_URL` | created by Neon |
 
-   Não ponha `NTFY_*`, `GOOGLE_*`, `TOQUE_ENCRYPTION_KEY` nem segredos da instalação pessoal. Como `NEXT_PUBLIC_*` fica embutido no build, mudar esta variável exige **Redeploy**.
+   Don't set `NTFY_*`, `GOOGLE_*`, `TOQUE_ENCRYPTION_KEY` or any secrets from the personal installation. Since `NEXT_PUBLIC_*` is embedded in the build, changing this variable requires a **Redeploy**.
 
-4. O build é o mesmo do projeto principal (`npm run db:migrate && npm run build`, no `vercel.json`), por isso as migrações correm em cada deploy.
-5. Não é preciso cron-job.org: sem ntfy não há avisos a enviar, e a limpeza dos dados não depende do cron.
+4. The build is the same as the main project's (`npm run db:migrate && npm run build`, in `vercel.json`), so migrations run on every deploy.
+5. cron-job.org is not needed: without ntfy there are no alerts to send, and the data cleanup does not depend on the cron.
 
-## Testes
+## Tests
 
 ```bash
 npm run test:e2e:demo
 ```
 
-Faz um build próprio com `NEXT_PUBLIC_TOQUE_DEMO=1` em `.next-demo` (para não estragar o build normal em `.next`) e serve-o na porta 4421 com uma BD PGlite em memória. Verifica o login com `demo`, os campos desativados, os 403/redirecionamentos do ntfy e do Google, e que tarefas, tags e o toque em `/t/<token>` funcionam. A limpeza de 5 minutos é testada nos testes unitários (sem esperar 5 minutos reais).
+It makes its own build with `NEXT_PUBLIC_TOQUE_DEMO=1` in `.next-demo` (so the normal build in `.next` is not disturbed) and serves it on port 4421 with an in-memory PGlite database. It checks the login with `demo`, the disabled fields, the ntfy and Google 403s/redirects, and that tasks, tags and the tap on `/t/<token>` work. The 5-minute cleanup is tested in the unit tests (without waiting 5 real minutes).

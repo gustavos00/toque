@@ -42,7 +42,7 @@ export async function getTagScanInfo(
 
 type ScanOutcome = { status: 200 | 404 | 500; result: ScanResult };
 
-/** "Feito" in the popup: logs the scan and lets the engine react (the tag's own action). */
+/** "Done" in the popup: logs the scan and lets the engine react (the tag's own action). */
 export async function recordTagScan(
   token: string,
   input: { now: Date; userAgent: string | null },
@@ -52,8 +52,8 @@ export async function recordTagScan(
     return {
       status: 404,
       result: {
-        title: "Etiqueta desconhecida",
-        message: "Esta etiqueta não está registada no Toque.",
+        title: "Unknown tag",
+        message: "This tag isn't registered in Toque.",
         tone: "info",
       },
     };
@@ -65,7 +65,7 @@ export async function recordTagScan(
       status: 200,
       result: {
         title: tag.label,
-        message: "Esta etiqueta ainda não está associada a nenhuma tarefa.",
+        message: "This tag isn't linked to any task yet.",
         tone: "info",
       },
     };
@@ -75,7 +75,7 @@ export async function recordTagScan(
       status: 200,
       result: {
         title: task.name,
-        message: "Esta tarefa está desativada.",
+        message: "This task is disabled.",
         tone: "info",
       },
     };
@@ -108,14 +108,14 @@ export async function recordTagScan(
       status: 500,
       result: {
         title: task.name,
-        message: "O toque foi registado, mas algo correu mal. Tente novamente.",
+        message: "The tap was recorded, but something went wrong. Please try again.",
         tone: "info",
       },
     };
   }
 }
 
-/** "Adiar" in the popup: snoozes the tag's task. Nothing is logged as a scan. */
+/** "Snooze" in the popup: snoozes the tag's task. Nothing is logged as a scan. */
 export async function snoozeTagTask(
   token: string,
   now: Date,
@@ -126,10 +126,10 @@ export async function snoozeTagTask(
     return {
       status: tag ? 200 : 404,
       result: {
-        title: tag?.label ?? "Etiqueta desconhecida",
+        title: tag?.label ?? "Unknown tag",
         message: tag
-          ? "Não há nenhuma tarefa ativa para adiar."
-          : "Esta etiqueta não está registada no Toque.",
+          ? "There is no active task to snooze."
+          : "This tag isn't registered in Toque.",
         tone: "info",
       },
     };

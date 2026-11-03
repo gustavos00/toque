@@ -40,7 +40,7 @@ let db: Db;
 async function insertTask(
   kind: string,
   config: Record<string, unknown>,
-  name = "Tarefa",
+  name = "Task",
 ) {
   const [row] = await db
     .insert(schema.tasks)
@@ -82,11 +82,11 @@ beforeEach(async () => {
 });
 
 describe("timer end to end", () => {
-  it("start → heads-up superseded by 'pronto' on a late tick → complete stops reminders", async () => {
+  it("start → heads-up superseded by 'ready' on a late tick → complete stops reminders", async () => {
     const taskId = await insertTask(
       "timer",
       { durationMinutes: 45 },
-      "Máquina",
+      "Machine",
     );
     const result = await handleScan({
       taskId,
@@ -96,7 +96,7 @@ describe("timer end to end", () => {
     });
     expect(result).toMatchObject({
       tone: "started",
-      message: "A contar 45 min · acaba às 15:40",
+      message: "Counting down 45 min · ends at 15:40",
     });
     expect((await getPending(taskId)).map((row) => row.kind).sort()).toEqual([
       "timer_almost_done",
@@ -105,12 +105,12 @@ describe("timer end to end", () => {
       "timer_forgotten",
     ]);
 
-    // Tick missed the heads-up: only "pronto" is sent.
+    // Tick missed the heads-up: only "ready" is sent.
     const { notifier, sent } = createFakeNotifier();
     expect(await runTick(at("2026-10-09", "15:41"), { notifier })).toEqual({
       sent: 1,
     });
-    expect(sent[0].title).toBe("Máquina: pronto");
+    expect(sent[0].title).toBe("Machine: ready");
     expect(sent[0].buttons).toEqual([]);
     expect(sent[0].clickUrl).toBe("https://toque.example.pt/");
     // Idempotent: same minute again sends nothing.
@@ -118,12 +118,12 @@ describe("timer end to end", () => {
       sent: 0,
     });
 
-    // A start scan while running would be info; after the end the forgotten reminder fires with "Já tratei".
+    // A start scan while running would be info; after the end the forgotten reminder fires with "Handled".
     expect(await runTick(at("2026-10-09", "16:11"), { notifier })).toEqual({
       sent: 1,
     });
     expect(sent[1].buttons.map((button) => button.label)).toEqual([
-      "Já tratei",
+      "Handled",
     ]);
 
     const done = await handleScan({
@@ -195,7 +195,7 @@ describe("timer end to end", () => {
     expect(await runTick(at("2026-10-09", "10:31"), { notifier })).toEqual({
       sent: 1,
     });
-    expect(sent[0].title).toContain("pronto");
+    expect(sent[0].title).toContain("ready");
   });
 });
 
@@ -207,10 +207,10 @@ describe("until_ack end to end", () => {
     expect(await runTick(at("2026-10-09", "18:00"), { notifier })).toEqual({
       sent: 1,
     });
-    expect(sent[0].message).toBe("Ainda não está feito (aviso 3 de 6).");
+    expect(sent[0].message).toBe("Still not done (reminder 3 of 6).");
     expect(sent[0].buttons.map((button) => button.label)).toEqual([
-      "Feito",
-      "Adiar 30 min",
+      "Done",
+      "Snooze 30 min",
     ]);
 
     const result = await handleScan({
@@ -221,7 +221,7 @@ describe("until_ack end to end", () => {
     });
     expect(result).toMatchObject({
       tone: "done",
-      message: "Feito por hoje. Próxima vez: sex, 16/10.",
+      message: "Done for today. Next time: Fri, 16/10.",
     });
     const pending = await getPending(taskId);
     expect(pending.every((row) => row.dedupeKey?.includes("2026-10-16"))).toBe(
@@ -245,7 +245,7 @@ describe("until_ack end to end", () => {
 });
 
 describe("notification actions", () => {
-  it("'Adiar' holds the alerts and sends one reminder at the snooze end; bad signatures are refused", async () => {
+  it("'Snooze' holds the alerts and sends one reminder at the snooze end; bad signatures are refused", async () => {
     const taskId = await insertTask("until_ack", { weekdays: [5] }, "Lixo");
     const { notifier, sent } = createFakeNotifier();
     await runTick(at("2026-10-09", "13:00"), { notifier });
@@ -276,12 +276,12 @@ describe("notification actions", () => {
     );
     expect(outcome).toMatchObject({
       ok: true,
-      result: { message: "Adiado. Volto a lembrar às 13:32." },
+      result: { message: "Snoozed. I'll remind you again at 13:32." },
     });
     expect(await runTick(at("2026-10-09", "13:33"), { notifier })).toEqual({
       sent: 1,
     });
-    expect(sent.at(-1)?.message).toContain("Adiado até às 13:32.");
+    expect(sent.at(-1)?.message).toContain("Snoozed until 13:32.");
 
     const doneUrl = new URL(
       createActionUrl({
@@ -332,7 +332,7 @@ describe("stale notification buttons", () => {
     ).toBe(true);
   });
 
-  it("yesterday's until_ack 'Feito' and 'Adiar' change nothing today", async () => {
+  it("yesterday's until_ack 'Done' and 'Snooze' change nothing today", async () => {
     const taskId = await insertTask("until_ack", { weekdays: [4, 5] }, "Lixo"); // Thursday + Friday
     const now = at("2026-10-09", "10:00"); // Friday
     for (const action of ["done", "snooze"] as const) {
@@ -345,7 +345,7 @@ describe("stale notification buttons", () => {
         ok: true,
         result: {
           title: "Lixo",
-          message: "Este aviso já não está ativo.",
+          message: "This alert is no longer active.",
           tone: "info",
         },
       });
@@ -372,7 +372,7 @@ describe("stale notification buttons", () => {
     const taskId = await insertTask(
       "timer",
       { durationMinutes: 30 },
-      "Máquina",
+      "Machine",
     );
     const firstStart = at("2026-10-09", "10:00");
     await handleScan({
@@ -395,7 +395,7 @@ describe("stale notification buttons", () => {
     );
     expect(stale).toMatchObject({
       ok: true,
-      result: { message: "Este aviso já não está ativo.", tone: "info" },
+      result: { message: "This alert is no longer active.", tone: "info" },
     });
     const [state] = await db
       .select()
@@ -422,7 +422,7 @@ describe("recurring weekdays end to end", () => {
     await insertTask(
       "recurring",
       { mode: "weekdays", weekdays: [2, 4], reminderTime: "09:00" },
-      "Plantas",
+      "Plants",
     );
     const { notifier, sent } = createFakeNotifier();
     const minutes = ["2026-10-13", "2026-10-14", "2026-10-15"].flatMap(
@@ -437,9 +437,9 @@ describe("recurring weekdays end to end", () => {
     expect(
       sent.map((notification) => [notification.title, notification.message]),
     ).toEqual([
-      ["Plantas", "Hoje é dia. Toca na tag quando estiver feito."],
-      ["Plantas: em atraso", "Era para ter, 13/10 — há 1 dia."],
-      ["Plantas", "Hoje é dia. Toca na tag quando estiver feito."],
+      ["Plants", "Due today. Tap the tag when it's done."],
+      ["Plants: overdue", "Was due Tue, 13/10 — 1 day ago."],
+      ["Plants", "Due today. Tap the tag when it's done."],
     ]);
   });
 });
@@ -449,7 +449,7 @@ describe("rescheduleTask", () => {
     const taskId = await insertTask(
       "recurring",
       { everyDays: 7, reminderTime: "09:00" },
-      "Plantas",
+      "Plants",
     );
     await db
       .insert(schema.taskState)

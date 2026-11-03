@@ -38,7 +38,7 @@ async function insertTimer() {
   const [row] = await db
     .insert(schema.tasks)
     .values({
-      name: "Máquina",
+      name: "Machine",
       kind: "timer",
       config: { durationMinutes: 30 } as never,
     })

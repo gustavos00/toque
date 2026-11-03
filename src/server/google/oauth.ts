@@ -149,12 +149,12 @@ async function requestToken(
     if (body.error === "invalid_grant") {
       throw new GoogleAuthError(
         "invalid_grant",
-        "A ligação ao Google expirou ou foi revogada. Volta a ligar.",
+        "The Google connection expired or was revoked. Connect again.",
       );
     }
     throw new GoogleAuthError(
       "http",
-      `Google respondeu ${response.status}: ${body.error_description ?? body.error ?? "erro desconhecido"}`,
+      `Google responded ${response.status}: ${body.error_description ?? body.error ?? "unknown error"}`,
     );
   }
   return body as TokenResponse;

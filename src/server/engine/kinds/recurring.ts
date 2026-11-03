@@ -22,10 +22,10 @@ import type {
 type RecurringTask = TaskOf<"recurring">;
 
 function describeSchedule(config: RecurringConfig): string {
-  if (config.mode === "weekdays") return "Hoje é dia";
+  if (config.mode === "weekdays") return "Due today";
   return config.everyDays === 1
-    ? "Está na hora (todos os dias)"
-    : `Está na hora (a cada ${config.everyDays} dias)`;
+    ? "Time again (every day)"
+    : `Time again (every ${config.everyDays} days)`;
 }
 
 /** Is `date` itself an occurrence (weekdays mode)? Such a day gets a "due" row, not an overdue one. */
@@ -46,7 +46,7 @@ function buildDueRow(
     expiresAt: null,
     payload: {
       title: task.name,
-      message: `${describeSchedule(task.config)}. Toca na tag quando estiver feito.`,
+      message: `${describeSchedule(task.config)}. Tap the tag when it's done.`,
       priority: 3,
       tags: ["calendar"],
       actions: ["done", "snooze", "open"],
@@ -65,7 +65,7 @@ function completeTask(task: RecurringTask, now: Date): TaskOutcome {
     events: [{ type: "done" }],
     result: {
       title: task.name,
-      message: `Feito. Próxima vez: ${formatLocalDateLabel(getLocalDate(nextDue))}.`,
+      message: `Done. Next time: ${formatLocalDateLabel(getLocalDate(nextDue))}.`,
       tone: "done",
     },
   };
@@ -111,8 +111,8 @@ export const recurringHandler: KindHandler<"recurring"> = {
         dueAt: createLocalInstant(date, task.config.reminderTime),
         expiresAt: null,
         payload: {
-          title: `${task.name}: em atraso`,
-          message: `Era para ${formatLocalDateLabel(dueDate)} — ${daysLate === 1 ? "há 1 dia" : `há ${daysLate} dias`}.`,
+          title: `${task.name}: overdue`,
+          message: `Was due ${formatLocalDateLabel(dueDate)} — ${daysLate === 1 ? "1 day ago" : `${daysLate} days ago`}.`,
           priority: 4,
           tags: ["hourglass"],
           actions: ["done", "snooze", "open"],

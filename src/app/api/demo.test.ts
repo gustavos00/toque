@@ -126,7 +126,7 @@ describe("Google is blocked", () => {
       );
       expect(response.status).toBe(403);
       expect(await response.json()).toEqual({
-        error: "Indisponível na demonstração",
+        error: "Unavailable in the demo",
       });
     }
   });

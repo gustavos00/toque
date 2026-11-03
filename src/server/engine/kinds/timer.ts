@@ -20,7 +20,7 @@ function formatDuration(minutes: number): string {
 }
 
 /**
- * "Quase a acabar" heads-up `almostDoneMinutes` before the end. Skipped when that moment is
+ * "Almost done" heads-up `almostDoneMinutes` before the end. Skipped when that moment is
  * not after the start (it would already be in the past at scan time).
  */
 function getAlmostDoneAt(
@@ -42,11 +42,11 @@ function buildInfoOutcome(task: TimerTask, message: string): TaskOutcome {
 }
 
 /**
- * timer — fire-and-forget. A "start" scan starts a countdown ("quase a acabar" heads-up, then
- * "pronto"); scanning while it runs changes nothing; after the end it starts a new cycle,
- * whose new dedupe keys supersede the old cycle's rows. A "complete" scan / "Já tratei" handles
+ * timer — fire-and-forget. A "start" scan starts a countdown ("almost done" heads-up, then
+ * "ready"); scanning while it runs changes nothing; after the end it starts a new cycle,
+ * whose new dedupe keys supersede the old cycle's rows. A "complete" scan / "Handled" handles
  * the ended cycle by setting lastDoneAt (shared getTimerPhase: lastDoneAt >= timerEndsAt
- * = handled). "Esqueceste-te?" reminders (on by default)
+ * = handled). "Did you forget?" reminders (on by default)
  * follow the end until then.
  */
 export const timerHandler: KindHandler<"timer"> = {
@@ -68,8 +68,8 @@ export const timerHandler: KindHandler<"timer"> = {
         // Quiet hours drop it rather than defer it past the end.
         expiresAt: endsAt,
         payload: {
-          title: `${task.name} quase a acabar`,
-          message: `Faltam ${formatDuration(task.config.almostDoneMinutes)} (acaba às ${readyAt}).`,
+          title: `${task.name} almost done`,
+          message: `${formatDuration(task.config.almostDoneMinutes)} left (ends at ${readyAt}).`,
           priority: 3,
           tags: ["hourglass_flowing_sand"],
           actions: ["open"],
@@ -83,8 +83,8 @@ export const timerHandler: KindHandler<"timer"> = {
       dueAt: endsAt,
       expiresAt: null,
       payload: {
-        title: `${task.name}: pronto`,
-        message: `Terminou às ${readyAt}.`,
+        title: `${task.name}: ready`,
+        message: `Finished at ${readyAt}.`,
         priority: 4,
         tags: ["white_check_mark"],
         actions: ["open"],
@@ -106,8 +106,8 @@ export const timerHandler: KindHandler<"timer"> = {
         dueAt: addMinutes(endsAt, offset),
         expiresAt: null,
         payload: {
-          title: `${task.name}: esqueceste-te?`,
-          message: `Está pronto desde as ${readyAt} (há ${formatDuration(offset)}).`,
+          title: `${task.name}: did you forget?`,
+          message: `Ready since ${readyAt} (${formatDuration(offset)} ago).`,
           priority: index === offsets.length - 1 ? 5 : 4,
           tags: ["warning"],
           actions: ["done", "open"],
@@ -126,7 +126,7 @@ export const timerHandler: KindHandler<"timer"> = {
     if (getTimerPhase(state, now) === "running" && state.timerEndsAt) {
       return buildInfoOutcome(
         task,
-        `Já está a decorrer · acaba às ${getLocalTime(state.timerEndsAt)}`,
+        `Already running · ends at ${getLocalTime(state.timerEndsAt)}`,
       );
     }
     const endsAt = addMinutes(now, task.config.durationMinutes);
@@ -137,7 +137,7 @@ export const timerHandler: KindHandler<"timer"> = {
       ],
       result: {
         title: task.name,
-        message: `A contar ${formatDuration(task.config.durationMinutes)} · acaba às ${getLocalTime(endsAt)}`,
+        message: `Counting down ${formatDuration(task.config.durationMinutes)} · ends at ${getLocalTime(endsAt)}`,
         tone: "started",
       },
     };
@@ -149,18 +149,18 @@ export const timerHandler: KindHandler<"timer"> = {
     if (status === "running" && endsAt) {
       return buildInfoOutcome(
         task,
-        `Ainda está a decorrer · acaba às ${getLocalTime(endsAt)}`,
+        `Still running · ends at ${getLocalTime(endsAt)}`,
       );
     }
     if (status !== "ready" || !endsAt)
-      return buildInfoOutcome(task, "Nada por tratar.");
+      return buildInfoOutcome(task, "Nothing to handle.");
     return {
-      // The cycle stays in task_state so the dashboard shows "acabou às" and "tratada às".
+      // The cycle stays in task_state so the dashboard shows "ended at" and "handled at".
       patch: { lastDoneAt: now, snoozedUntil: null },
       events: [{ type: "done", data: { endsAt: endsAt.toISOString() } }],
       result: {
         title: task.name,
-        message: `Tratado ✓ (estava pronto desde as ${getLocalTime(endsAt)})`,
+        message: `Handled ✓ (it was ready since ${getLocalTime(endsAt)})`,
         tone: "done",
       },
     };

@@ -36,7 +36,7 @@ describe("recurring config", () => {
       const result = recurringConfigSchema.safeParse(config);
       expect(result.success).toBe(false);
       expect(JSON.stringify(result.error)).toContain(
-        "Escolhe pelo menos um dia",
+        "Choose at least one day",
       );
     }
     expect(recurringConfigSchema.safeParse({ weekdays: [8] }).success).toBe(

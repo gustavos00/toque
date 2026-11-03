@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { createTask, deleteTask, fetchTask, updateTask } from "../../src/api";
 import {
   Button,
@@ -8,6 +8,7 @@ import {
   Field,
   Input,
   LoadState,
+  Message,
   Row,
   Screen,
   Section,
@@ -21,6 +22,7 @@ import {
   KIND_LABELS,
   KIND_PLACEHOLDERS,
   WEEKDAY_LETTERS,
+  WEEKDAY_NAMES,
 } from "../../src/format";
 import { syncReminderNotifications } from "../../src/notifications";
 import { useApi } from "../../src/useApi";
@@ -59,7 +61,7 @@ function createDefault(kind: Kind): Form["def"] {
 
 export default function TaskScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const isNew = id === "nova";
+  const isNew = id === "new";
   const router = useRouter();
   const { data, error, loading, reload } = useApi(() =>
     isNew ? Promise.resolve(null) : fetchTask(id),
@@ -92,17 +94,17 @@ export default function TaskScreen() {
       void syncReminderNotifications();
       router.back();
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "Falha ao guardar");
+      setMessage(e instanceof Error ? e.message : "Could not save");
     } finally {
       setSaving(false);
     }
   }
 
   function confirmDelete() {
-    Alert.alert("Apagar tarefa?", "As tags ficam sem tarefa.", [
-      { text: "Cancelar", style: "cancel" },
+    Alert.alert("Delete task?", "Its tags are kept, with no task.", [
+      { text: "Cancel", style: "cancel" },
       {
-        text: "Apagar",
+        text: "Delete",
         style: "destructive",
         onPress: async () => {
           await deleteTask(id).catch(() => undefined);
@@ -118,12 +120,12 @@ export default function TaskScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: isNew ? "Nova tarefa" : "Tarefa" }} />
+      <Stack.Screen options={{ title: isNew ? "New task" : "Task" }} />
       <LoadState loading={loading && !isNew} error={error} hasData={isNew || !!data} onRetry={reload} />
       {isNew || data ? (
         <>
           <Section>
-            <Field label="Nome">
+            <Field label="Name">
               <Input
                 value={form.name}
                 onChangeText={(name) => setForm((f) => ({ ...f, name }))}
@@ -131,12 +133,12 @@ export default function TaskScreen() {
                 maxLength={80}
               />
             </Field>
-            <Field label="Ativa">
+            <Field label="On">
               <Toggle value={form.enabled} onChange={(enabled) => setForm((f) => ({ ...f, enabled }))} />
             </Field>
           </Section>
 
-          <Section title="Tipo" footer={KIND_DESCRIPTIONS[form.def.kind]}>
+          <Section title="Kind" footer={KIND_DESCRIPTIONS[form.def.kind]}>
             <Segmented
               value={form.def.kind}
               options={(Object.keys(KIND_LABELS) as Kind[]).map((k) => ({ value: k, label: KIND_LABELS[k] }))}
@@ -147,27 +149,28 @@ export default function TaskScreen() {
           <KindFields def={form.def} setConfig={setConfig} />
 
           {data && data.tags.length > 0 ? (
-            <Section title="Tags" footer="Toca para gravar ou associar a etiqueta NFC.">
+            <Section title="Tags" footer="Tap a tag to write it to an NFC sticker.">
               {data.tags.map((tag) => (
-                <Row key={tag.id} title={tag.label} onPress={() => router.push(`/tag/${tag.id}/associar`)} />
+                <Row
+                  key={tag.id}
+                  title={tag.label}
+                  value={tag.action === "complete" ? "Completes" : "Starts"}
+                  onPress={() => router.push(`/tag/${tag.id}/link`)}
+                />
               ))}
             </Section>
           ) : null}
 
-          {message ? <Text style={{ color: colors.danger, marginBottom: 8 }}>{message}</Text> : null}
-          <Button title={isNew ? "Criar" : "Guardar"} onPress={save} disabled={saving || !form.name.trim()} />
-          {!isNew ? (
-            <Section>
-              <Row title="Apagar tarefa" tone="danger" onPress={confirmDelete} />
-            </Section>
-          ) : null}
+          <Message text={message} />
+          <Button title={isNew ? "Create task" : "Save"} onPress={save} disabled={saving || !form.name.trim()} />
+          {!isNew ? <Button title="Delete task" tone="danger" onPress={confirmDelete} /> : null}
         </>
       ) : null}
     </Screen>
   );
 }
 
-function parseTimes(text: string): string[] {
+function parseList(text: string): string[] {
   return text.split(/[\s,;]+/).filter(Boolean);
 }
 
@@ -185,32 +188,32 @@ function KindFields({
     const c = def.config;
     return (
       <>
-        <Section>
+        <Section title="Duration">
           <Field label={formatMinutes(c.durationMinutes)}>
             <Stepper value={c.durationMinutes} min={1} max={1440} step={5} onChange={(durationMinutes) => setConfig({ durationMinutes })} />
           </Field>
         </Section>
-        <Section footer="Um aviso antes de a contagem acabar.">
-          <Field label="Avisar antes de acabar">
+        <Section title="Before it ends" footer="One reminder shortly before the countdown ends.">
+          <Field label="Remind me">
             <Toggle value={c.almostDoneEnabled} onChange={(almostDoneEnabled) => setConfig({ almostDoneEnabled })} />
           </Field>
           {c.almostDoneEnabled ? (
-            <Field label="Minutos antes">
+            <Field label="Minutes before">
               <Stepper value={c.almostDoneMinutes} min={1} max={Math.max(1, c.durationMinutes - 1)} onChange={(almostDoneMinutes) => setConfig({ almostDoneMinutes })} />
             </Field>
           ) : null}
         </Section>
-        <Section footer="Minutos depois do fim, separados por vírgulas (ex.: 30, 60).">
-          <Field label="Lembrar se ficar esquecida">
+        <Section title="Left unattended" footer="Minutes after the end, separated by commas (e.g. 30, 60).">
+          <Field label="Remind me">
             <Toggle value={c.forgottenRemindersEnabled} onChange={(forgottenRemindersEnabled) => setConfig({ forgottenRemindersEnabled })} />
           </Field>
           {c.forgottenRemindersEnabled ? (
-            <Field label="Depois de (min)">
+            <Field label="After (min)">
               <Input
                 value={forgottenText ?? c.forgottenReminderMinutes.join(", ")}
                 onChangeText={(text) => {
                   setForgottenText(text);
-                  const values = parseTimes(text).map(Number);
+                  const values = parseList(text).map(Number);
                   if (values.every((v) => Number.isInteger(v) && v >= 1 && v <= 1440))
                     setConfig({ forgottenReminderMinutes: values });
                 }}
@@ -227,16 +230,16 @@ function KindFields({
     const c = def.config;
     return (
       <>
-        <Section title="Dias">
+        <Section title="Days">
           <WeekdayPicker value={c.weekdays} onChange={(weekdays) => setConfig({ weekdays })} />
         </Section>
-        <Section title="Horas dos avisos" footer="HH:MM separadas por vírgulas, por ordem.">
-          <Field label="Horas">
+        <Section title="Reminders" footer="HH:MM, separated by commas, in order.">
+          <Field label="At">
             <Input
               value={timesText ?? c.reminderTimes.join(", ")}
               onChangeText={(text) => {
                 setTimesText(text);
-                const times = parseTimes(text);
+                const times = parseList(text);
                 if (times.length > 0 && times.every((t) => TIME.test(t))) setConfig({ reminderTimes: times });
               }}
               keyboardType="numbers-and-punctuation"
@@ -251,12 +254,12 @@ function KindFields({
   const c = def.config;
   return (
     <>
-      <Section title="Repetir">
+      <Section title="Repeat">
         <Segmented
           value={c.mode}
           options={[
-            { value: "weekdays", label: "Dias da semana" },
-            { value: "interval", label: "De N em N dias" },
+            { value: "weekdays", label: "On weekdays" },
+            { value: "interval", label: "Every N days" },
           ]}
           onChange={(mode) =>
             setConfig(mode === "weekdays" ? { mode, weekdays: [1], everyDays: undefined } : { mode, everyDays: 7, weekdays: undefined })
@@ -265,13 +268,13 @@ function KindFields({
         {c.mode === "weekdays" ? (
           <WeekdayPicker value={c.weekdays} onChange={(weekdays) => setConfig({ weekdays })} />
         ) : (
-          <Field label={`A cada ${c.everyDays} dia${c.everyDays === 1 ? "" : "s"}`}>
+          <Field label={`Every ${c.everyDays} day${c.everyDays === 1 ? "" : "s"}`}>
             <Stepper value={c.everyDays} min={1} max={365} onChange={(everyDays) => setConfig({ everyDays })} />
           </Field>
         )}
       </Section>
       <Section>
-        <Field label="Hora do aviso">
+        <Field label="Reminder at">
           <Input
             value={timesText ?? c.reminderTime}
             onChangeText={(text) => {
@@ -288,28 +291,42 @@ function KindFields({
 
 function WeekdayPicker({ value, onChange }: { value: number[]; onChange: (v: number[]) => void }) {
   return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", padding: 12 }}>
+    <View style={styles.weekdays}>
       {WEEKDAY_LETTERS.map((letter, index) => {
         const day = index + 1;
         const on = value.includes(day);
         return (
           <Pressable
             key={day}
-            accessibilityLabel={`dia ${day}`}
+            accessibilityLabel={WEEKDAY_NAMES[index]}
+            accessibilityState={{ selected: on }}
             onPress={() => onChange(on ? value.filter((d) => d !== day) : [...value, day].sort())}
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 19,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: on ? colors.primary : "#e5e5ea",
-            }}
+            style={[styles.day, on && styles.dayOn]}
           >
-            <Text style={{ color: on ? "#fff" : colors.text }}>{letter}</Text>
+            <Text style={{ color: on ? colors.bg : colors.soft, fontWeight: "500" }}>{letter}</Text>
           </Pressable>
         );
       })}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  weekdays: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.rule,
+  },
+  day: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dayOn: { backgroundColor: colors.text, borderColor: colors.text },
+});

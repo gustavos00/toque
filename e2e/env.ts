@@ -34,7 +34,7 @@ export const E2E_ENV: Record<string, string> = {
 /** Same as E2E_ENV but with an invalid TOQUE_ENCRYPTION_KEY → Google not configured. */
 export const E2E_NO_GOOGLE_ENV: Record<string, string> = {
   ...E2E_ENV,
-  TOQUE_ENCRYPTION_KEY: "isto-nao-e-uma-chave-de-32-bytes",
+  TOQUE_ENCRYPTION_KEY: "this-is-not-a-32-byte-key",
   TOQUE_PUBLIC_URL: `http://localhost:${E2E_NO_GOOGLE_PORT}`,
 };
 

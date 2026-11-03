@@ -135,7 +135,7 @@ describe("ntfy adapter", () => {
     kind: "until_ack_reminder",
     payload: {
       title: "Lixo",
-      message: "Hoje é o dia.",
+      message: "Today is the day.",
       priority: 4,
       tags: ["bell"],
       actions: ["done", "snooze", "open"],
@@ -154,7 +154,7 @@ describe("ntfy adapter", () => {
     );
     await createNtfyNotifier({
       baseUrl: "https://ntfy.sh/",
-      topic: "segredo",
+      topic: "secret",
       token: "tk",
       fetch: fetchMock,
     }).send(notification);
@@ -166,16 +166,16 @@ describe("ntfy adapter", () => {
     );
     const body = JSON.parse(String(init?.body));
     expect(body).toMatchObject({
-      topic: "segredo",
+      topic: "secret",
       title: "Lixo",
-      message: "Hoje é o dia.",
+      message: "Today is the day.",
       priority: 4,
       tags: ["bell"],
       click: "https://toque.example.pt/",
     });
     expect(body.actions.map((a: { label: string }) => a.label)).toEqual([
-      "Feito",
-      "Adiar 1 h",
+      "Done",
+      "Snooze 1 h",
     ]);
     expect(body.actions[0]).toMatchObject({
       action: "http",
@@ -188,7 +188,7 @@ describe("ntfy adapter", () => {
     expect(JSON.stringify(body)).not.toContain(SECRET);
   });
 
-  it("labels the timer reminder button 'Já tratei'", () => {
+  it("labels the timer reminder button 'Handled'", () => {
     const forgotten = buildOutgoingNotification({
       kind: "timer_forgotten",
       payload: {
@@ -206,7 +206,7 @@ describe("ntfy adapter", () => {
       secret: SECRET,
     });
     expect(forgotten.buttons.map((button) => button.label)).toEqual([
-      "Já tratei",
+      "Handled",
     ]);
   });
 
@@ -237,11 +237,11 @@ describe("ntfy adapter", () => {
     );
     const notifier = createNtfyNotifier({
       baseUrl: "https://ntfy.sh",
-      topic: "segredo",
+      topic: "secret",
       fetch: fetchMock,
     });
     await expect(notifier.send(notification)).rejects.toThrow(
-      "ntfy respondeu 429: rate limited",
+      "ntfy responded 429: rate limited",
     );
   });
 });

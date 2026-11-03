@@ -82,8 +82,8 @@ describe("session cookie", () => {
 
 describe("password", () => {
   it("compares against TOQUE_PASSWORD", () => {
-    vi.stubEnv("TOQUE_PASSWORD", "segredo");
-    expect(isPasswordCorrect("segredo")).toBe(true);
+    vi.stubEnv("TOQUE_PASSWORD", "secret");
+    expect(isPasswordCorrect("secret")).toBe(true);
     expect(isPasswordCorrect("Segredo")).toBe(false);
     expect(isPasswordCorrect("")).toBe(false);
   });
@@ -98,9 +98,9 @@ describe("password", () => {
   it("uses the public demo password in demo mode, ignoring TOQUE_PASSWORD", () => {
     vi.stubEnv("NEXT_PUBLIC_TOQUE_DEMO", "1");
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("TOQUE_PASSWORD", "segredo");
+    vi.stubEnv("TOQUE_PASSWORD", "secret");
     expect(isPasswordCorrect("demo")).toBe(true);
-    expect(isPasswordCorrect("segredo")).toBe(false);
+    expect(isPasswordCorrect("secret")).toBe(false);
   });
 });
 

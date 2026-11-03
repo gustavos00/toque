@@ -81,7 +81,7 @@ async function recordSyncError(db: Db, error: unknown): Promise<void> {
   console.error("calendar sync failed", error);
   await setGoogleLastError(
     db,
-    `Sincronização com o Google Calendar falhou: ${getErrorMessage(error)}`,
+    `Google Calendar sync failed: ${getErrorMessage(error)}`,
   ).catch(() => {});
 }
 
@@ -134,7 +134,7 @@ async function ensureCalendarId(
 
   await client.deleteCalendar(created.id);
   const winner = await getGoogleConnection(db);
-  if (!winner?.calendarId) throw new Error("Calendário Toque sem id");
+  if (!winner?.calendarId) throw new Error("Toque calendar without an id");
   return winner.calendarId;
 }
 
@@ -142,7 +142,7 @@ async function ensureCalendarId(
 export async function ensureToqueCalendar(): Promise<string> {
   const context = await getSyncContext();
   if (!context)
-    throw new GoogleAuthError("not_connected", "Google Calendar não ligado");
+    throw new GoogleAuthError("not_connected", "Google Calendar is not connected");
   return ensureCalendarId(context.db, context.client, new Date(), true);
 }
 

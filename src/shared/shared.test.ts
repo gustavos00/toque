@@ -48,7 +48,7 @@ describe("task configs", () => {
     });
     expect(result.success).toBe(false);
     expect(JSON.stringify(result.error)).toContain(
-      "O aviso tem de ser antes do fim",
+      "The warning must come before the end",
     );
     expect(parseTaskDefinitionSafely({ durationMinutes: 5 }).success).toBe(
       false,

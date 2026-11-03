@@ -62,7 +62,7 @@ describe("crypto", () => {
   });
 
   it("rejects tampering and other keys", () => {
-    const value = encryptSecret("segredo");
+    const value = encryptSecret("secret");
     const parts = value.split(".");
     parts[3] = Buffer.from("other").toString("base64url");
     expect(() => decryptSecret(parts.join("."))).toThrow();
@@ -247,7 +247,7 @@ describe("getGoogleAccessToken", () => {
     expect((error as GoogleAuthError).code).toBe("invalid_grant");
     const row = await getGoogleConnection(db);
     expect(row?.brokenAt).toEqual(later);
-    expect(row?.lastError).toMatch(/Volta a ligar/);
+    expect(row?.lastError).toMatch(/Connect again/);
 
     await expect(
       getGoogleAccessToken({ db, now: later, fetch: createFetchMock([]) }),

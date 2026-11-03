@@ -85,7 +85,7 @@ async function connectGoogle() {
 async function insertTask(
   kind: string,
   config: Record<string, unknown>,
-  name = "Tarefa",
+  name = "Task",
 ) {
   const [row] = await db
     .insert(schema.tasks)
@@ -145,7 +145,7 @@ describe("calendar sync", () => {
     const taskId = await insertTask(
       "timer",
       { durationMinutes: 45 },
-      "Máquina de lavar",
+      "Washing machine",
     );
     await handleScan({
       taskId,
@@ -162,7 +162,7 @@ describe("calendar sync", () => {
     expect((await getConnection()).calendarId).toBe("cal1");
     expect(google.getEvents()).toEqual([
       expect.objectContaining({
-        summary: "Máquina de lavar",
+        summary: "Washing machine",
         start: {
           dateTime: at("2026-10-09", "14:55").toISOString(),
           timeZone: "Europe/Lisbon",
@@ -207,14 +207,14 @@ describe("calendar sync", () => {
 
     await db
       .update(schema.tasks)
-      .set({ name: "Lixo (orgânico)" })
+      .set({ name: "Rubbish (organic)" })
       .where(eq(schema.tasks.id, taskId));
     await rescheduleTask(taskId, at("2026-10-09", "07:10"));
     expect(
       google.calls.slice(before).filter((call) => call === "updateEvent"),
     ).toHaveLength(4);
     expect(
-      google.getEvents().every((event) => event.summary === "Lixo (orgânico)"),
+      google.getEvents().every((event) => event.summary === "Rubbish (organic)"),
     ).toBe(true);
   });
 
@@ -224,7 +224,7 @@ describe("calendar sync", () => {
     const plants = await insertTask(
       "recurring",
       { mode: "weekdays", weekdays: [5], reminderTime: "18:00" },
-      "Plantas",
+      "Plants",
     );
     await syncAllCalendarEvents(at("2026-10-09", "07:00"));
     expect(

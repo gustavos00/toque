@@ -21,9 +21,9 @@ describe("engine time helpers", () => {
     expect(getLocalDaysBetween("2026-11-02", "2026-10-30")).toBe(-3);
   });
 
-  it("labels dates in Portuguese", () => {
-    expect(formatLocalDateLabel("2026-10-15")).toBe("qui, 15/10");
-    expect(formatLocalDateLabel("2026-10-18")).toBe("dom, 18/10");
+  it("labels dates in English", () => {
+    expect(formatLocalDateLabel("2026-10-15")).toBe("Thu, 15/10");
+    expect(formatLocalDateLabel("2026-10-18")).toBe("Sun, 18/10");
   });
 
   it("ends the day on the next local midnight across DST (23h and 25h days)", () => {

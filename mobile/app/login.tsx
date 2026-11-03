@@ -1,7 +1,8 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Button, StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { login } from "../src/api";
+import { Button, colors, fonts, Input, Message } from "../src/components/ui";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function LoginScreen() {
       await login(password);
       router.replace("/(tabs)");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha no login");
+      setError(e instanceof Error ? e.message : "Sign-in failed");
     } finally {
       setBusy(false);
     }
@@ -25,24 +26,38 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Toque</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Palavra-passe"
-        secureTextEntry
-        autoCapitalize="none"
-        value={password}
-        onChangeText={setPassword}
-        onSubmitEditing={submit}
-      />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Button title="Entrar" onPress={submit} disabled={busy || !password} />
+      <Text style={styles.lead}>Household chores, logged by tapping an NFC tag.</Text>
+      <View style={styles.field}>
+        <Input
+          style={styles.input}
+          placeholder="Password"
+          secureTextEntry
+          autoCapitalize="none"
+          value={password}
+          onChangeText={setPassword}
+          onSubmitEditing={submit}
+        />
+      </View>
+      <Message text={error} />
+      <Button title="Sign in" onPress={submit} disabled={busy || !password} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 24, gap: 12 },
-  title: { fontSize: 32, fontWeight: "700", textAlign: "center" },
-  input: { borderWidth: 1, borderColor: "#999", borderRadius: 8, padding: 12 },
-  error: { color: "#c00" },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 24,
+    backgroundColor: colors.bg,
+  },
+  title: { fontFamily: fonts.serif, fontSize: 44, color: colors.text, letterSpacing: -0.5 },
+  lead: { fontSize: 16, color: colors.soft, marginTop: 8, marginBottom: 40 },
+  field: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.rule,
+    marginBottom: 20,
+  },
+  input: { textAlign: "left", paddingVertical: 16 },
 });

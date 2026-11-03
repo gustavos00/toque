@@ -66,11 +66,11 @@ export function createNotifierFromSettings(
 }
 
 function formatSnoozeLabel(minutes: number): string {
-  if (minutes % 60 === 0) return `Adiar ${minutes / 60} h`;
-  return `Adiar ${minutes} min`;
+  if (minutes % 60 === 0) return `Snooze ${minutes / 60} h`;
+  return `Snooze ${minutes} min`;
 }
 
-/** Maps an outbox payload to what the provider sends, signing the "Feito"/"Adiar" buttons. */
+/** Maps an outbox payload to what the provider sends, signing the "Done"/"Snooze" buttons. */
 export function buildOutgoingNotification(input: {
   kind: NotificationKind;
   payload: NotificationPayload;
@@ -91,7 +91,7 @@ export function buildOutgoingNotification(input: {
   if (baseUrl && secret && taskId && occurrence) {
     if (payload.actions.includes("done")) {
       buttons.push({
-        label: input.kind === "timer_forgotten" ? "Já tratei" : "Feito",
+        label: input.kind === "timer_forgotten" ? "Handled" : "Done",
         url: createActionUrl({
           baseUrl,
           action: "done",
