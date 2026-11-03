@@ -20,7 +20,7 @@ export function useApi<T>(fetcher: () => Promise<T>) {
         router.replace("/login");
         return;
       }
-      setError(e instanceof Error ? e.message : "Falha ao carregar");
+      setError(e instanceof Error ? e.message : "Could not load");
     } finally {
       setLoading(false);
     }

@@ -4,3 +4,6 @@ dist/
 ios/
 android/
 expo-env.d.ts
+
+# web build used by scripts/screenshots.mjs
+.screenshots-web/

@@ -2,7 +2,7 @@
 // (type-only imports, so nothing from ../src is bundled by Metro).
 
 import Constants from "expo-constants";
-import * as SecureStore from "expo-secure-store";
+import { deleteStoredToken, readStoredToken, writeStoredToken } from "./token-store";
 import type {
   ApiError,
   CreateTagRequest,
@@ -29,11 +29,11 @@ export function getApiUrl(): string {
 }
 
 export async function getToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(TOKEN_KEY);
+  return readStoredToken(TOKEN_KEY);
 }
 
 export async function clearToken(): Promise<void> {
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
+  await deleteStoredToken(TOKEN_KEY);
 }
 
 export class ApiRequestError extends Error {
@@ -59,7 +59,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const body = (await response.json().catch(() => null)) as ApiError | null;
     throw new ApiRequestError(
       response.status,
-      body?.error ?? `Erro ${response.status}`,
+      body?.error ?? `Error ${response.status}`,
     );
   }
   return (await response.json()) as T;
@@ -70,7 +70,7 @@ export async function login(password: string): Promise<void> {
     "/api/auth/login",
     { method: "POST", body: JSON.stringify({ password }) },
   );
-  await SecureStore.setItemAsync(TOKEN_KEY, token);
+  await writeStoredToken(TOKEN_KEY, token);
 }
 
 const json = (method: string, body?: unknown): RequestInit => ({

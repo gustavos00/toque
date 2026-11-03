@@ -22,7 +22,7 @@ export async function readTagUrl(): Promise<string | null> {
   await ensureStarted();
   try {
     await NfcManager.requestTechnology(NfcTech.Ndef, {
-      alertMessage: "Encosta o iPhone à etiqueta",
+      alertMessage: "Hold the iPhone near the tag",
     });
     const tag = await NfcManager.getTag();
     for (const record of tag?.ndefMessage ?? []) {
@@ -40,12 +40,12 @@ export async function writeTagUrl(url: string): Promise<void> {
   await ensureStarted();
   try {
     await NfcManager.requestTechnology(NfcTech.Ndef, {
-      alertMessage: "Encosta o iPhone à etiqueta para gravar",
+      alertMessage: "Hold the iPhone near the tag to write it",
     });
     const bytes = Ndef.encodeMessage([Ndef.uriRecord(url)]);
-    if (!bytes) throw new Error("Não foi possível codificar o URL");
+    if (!bytes) throw new Error("Could not encode the URL");
     await NfcManager.ndefHandler.writeNdefMessage(bytes);
-    await NfcManager.setAlertMessageIOS("Etiqueta gravada");
+    await NfcManager.setAlertMessageIOS("Tag written");
   } finally {
     await NfcManager.cancelTechnologyRequest().catch(() => {});
   }

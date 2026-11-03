@@ -2,113 +2,113 @@
 
 # 📲 Toque
 
-**Tarefas de casa que se registam com um toque do telemóvel numa tag NFC.**
+**Household tasks you log by tapping your phone on an NFC tag.**
 
-Encostas o iPhone à máquina da roupa e o Toque começa a contar.
-Quando acaba, avisa-te. Se te esqueceres da roupa lá dentro, volta a avisar.
+Hold your iPhone against the washing machine and Toque starts counting down.
+When it finishes, it notifies you. If you forget the laundry inside, it reminds you again.
 
-[**Experimentar a demonstração →**](https://toque-demo.vercel.app)
+[**Try the demo →**](https://toque-demo.vercel.app)
 
 ![Next.js 16](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
-![PWA](https://img.shields.io/badge/PWA-iPhone-5A0FC8?logo=pwa&logoColor=white)
+![iPhone app](https://img.shields.io/badge/iPhone-Expo-000020?logo=expo&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/license-MIT-0f766e)
 
 </div>
 
 <table>
 <tr>
-<td align="center" width="33%"><img src="docs/images/tag.png" alt="O ecrã que abre ao tocar numa tag: Máquina da roupa, a contar 1 h 15 min, acaba às 16:31"><br><sub><b>1. Tocas na tag</b><br>Sem login: a tag é a chave.</sub></td>
-<td align="center" width="33%"><img src="docs/images/painel.png" alt="O painel: um temporizador a decorrer e o lixo por pôr hoje"><br><sub><b>2. O painel mostra o que está a correr</b><br>Temporizadores e tarefas do dia.</sub></td>
-<td align="center" width="33%"><img src="docs/images/tarefas.png" alt="A lista de tarefas, agrupada por tipo, com as tags de cada uma"><br><sub><b>3. Cada tarefa tem as suas tags</b><br>Uma para começar, outra para dar como feita.</sub></td>
+<td align="center" width="33%"><img src="docs/images/tag.png" alt="The sheet that opens when you tap a tag: Take out the bins, with Snooze and Done"><br><sub><b>1. You tap the tag</b><br>The app asks what you did.</sub></td>
+<td align="center" width="33%"><img src="docs/images/today.png" alt="The Today screen: the washing machine counting down, the bins still to take out and the recurring tasks"><br><sub><b>2. Today shows what is running</b><br>Timers and the day's tasks.</sub></td>
+<td align="center" width="33%"><img src="docs/images/tasks.png" alt="The task list, grouped by kind, with how many tags each task has"><br><sub><b>3. Each task has its own tags</b><br>One to start it, another to mark it done.</sub></td>
 </tr>
 </table>
 
-<sub>Capturas da demonstração, com dados fictícios.</sub>
+<sub>Screenshots of the iPhone app with made-up data, made by <code>npm run screenshots</code>.</sub>
 
 ---
 
-## Porquê
+## Why
 
-As tarefas de casa não precisam de mais uma lista: precisam de alguém que se lembre por ti no momento certo. Com uma tag colada no sítio onde a tarefa acontece, marcá-la custa um segundo. O Toque trata do resto: conta o tempo, manda os lembretes e insiste o que for preciso.
+Household tasks don't need another list: they need someone to remember for you at the right moment. With a tag stuck where the task happens, logging it takes a second. Toque does the rest: it counts the time, sends the reminders and keeps nudging as much as needed.
 
-## Três tipos de tarefa
+## Three kinds of task
 
-|     | Tipo              | Exemplo           | O que acontece |
-| --- | ----------------- | ----------------- | -------------- |
-| ⏱️  | **Temporizador**  | Máquina da roupa  | A tag da máquina inicia a contagem e o Toque avisa quando acaba. Se quiseres, lembra-te da "roupa esquecida" até tocares na tag do estendal. |
-| 🔔  | **Até confirmar** | Pôr o lixo na rua | Nos dias de recolha manda avisos cada vez mais insistentes, até tocares na tag. |
-| 🔁  | **Periódica**     | Regar as plantas  | Fica pendente nos dias que escolheres, ou a cada N dias depois do último toque. |
+|     | Kind           | Example              | What happens |
+| --- | -------------- | -------------------- | ------------ |
+| ⏱️  | **Timer**      | Washing machine      | The machine's tag starts the countdown and Toque notifies you when it ends. Optionally, it reminds you about the "forgotten laundry" until you tap the tag on the drying rack. |
+| 🔔  | **Until done** | Putting the bins out | On collection days it sends increasingly insistent alerts until you tap the tag. |
+| 🔁  | **Recurring**  | Watering the plants  | It becomes pending on the days you choose, or every N days after the last tap. |
 
-## O que faz
+## What it does
 
-- **📲 Toque sem login.** Cada tag guarda um endereço `/t/<token>` e abri-lo regista o toque. O token é a credencial e só dá acesso àquela tarefa.
-- **🏷️ Várias tags por tarefa**, cada uma com a sua ação: "inicia" (na máquina) ou "tratada" (no estendal).
-- **🔔 Notificações com [ntfy](https://ntfy.sh).** Têm botões "Feito" e "Adiar", horas de silêncio e lembretes que vão subindo de tom.
-- **📅 Google Calendar (opcional).** Cria um calendário "Toque" só da app, sem lembretes, e apaga cada evento quando a tarefa fica feita.
-- **📊 Painel e histórico** de tudo o que foi tocado.
-- **📱 PWA instalável** no ecrã principal do iPhone, em português e com a hora de Lisboa.
-- **🔒 A app está protegida por uma palavra-passe;** só o toque nas tags é público.
+- **📲 Tapping without a login.** Each tag stores a `/t/<token>` address, which opens the app on the iPhone; one more tap on "Done" logs it. The token is the credential and only gives access to that one task.
+- **🏷️ Several tags per task**, each with its own action: "Start" (on the machine) or "Complete" (on the drying rack).
+- **🔔 Notifications with [ntfy](https://ntfy.sh).** They have "Done" and "Snooze" buttons, quiet hours and reminders that grow more urgent.
+- **📅 Google Calendar (optional).** Creates a "Toque" calendar used only by the app, without reminders, and deletes each event when the task is done.
+- **📊 Today screen and history** of everything that was tapped.
+- **📱 iPhone app** (Expo, in `mobile/`) that reads and writes the tags itself, in English and on Lisbon time. See [Install the app on the iPhone](docs/mobile.md).
+- **🔒 The app is protected by a password;** only tapping the tags is public.
 
-## Como funciona
+## How it works
 
 ```text
- tag NFC ──► https://<o-teu-domínio>/t/<token> ──► Next.js (Vercel) ──► Postgres (Neon)
+ tag NFC ──► https://<your-domain>/t/<token> ──► Next.js (Vercel) ──► Postgres (Neon)
                                                         ▲
- cron-job.org ── a cada minuto ──► /api/tick ───────────┘──► ntfy ──► 📱 notificação
-                                                         └─► Google Calendar (opcional)
+ cron-job.org ── every minute   ──► /api/tick ───────────┘──► ntfy ──► 📱 notification
+                                                         └─► Google Calendar (optional)
 ```
 
-| Peça        | Escolha |
+| Part        | Choice |
 | ----------- | ------- |
-| App         | Next.js 16 (App Router), React 19, TypeScript, Tailwind |
-| Dados       | Drizzle ORM: **Neon Postgres** em produção e **PGlite** em local, sem configurar nada |
-| Alojamento  | Vercel Hobby, com as migrações aplicadas em cada deploy |
-| Relógio     | cron-job.org chama `/api/tick` a cada minuto |
-| Avisos      | ntfy.sh |
-| Testes      | Vitest e Playwright (perfil iPhone / WebKit) |
+| App         | iPhone app in Expo / React Native (`mobile/`); server and API in Next.js 16 (App Router), React 19, TypeScript |
+| Data        | Drizzle ORM: **Neon Postgres** in production and **PGlite** locally, with no setup |
+| Hosting     | Vercel Hobby, with migrations applied on every deploy |
+| Clock       | cron-job.org calls `/api/tick` every minute |
+| Alerts      | ntfy.sh |
+| Tests       | Vitest and Playwright (iPhone profile / WebKit) |
 
-Tudo cabe nos planos gratuitos.
+Everything fits within the free plans.
 
-## Começar
+## Getting started
 
 ```bash
 git clone https://github.com/gustavos00/toque.git
 cd toque
 npm install
-cp .env.example .env.local   # preenche pelo menos TOQUE_PASSWORD e TOQUE_SESSION_SECRET
-npm run dev                  # http://localhost:3000, com PGlite em .data/pglite
+cp .env.example .env.local   # fill in at least TOQUE_PASSWORD and TOQUE_SESSION_SECRET
+npm run dev                  # http://localhost:3000, with PGlite in .data/pglite
 ```
 
-Sem `DATABASE_URL`, usa PGlite e migra automaticamente.
+Without `DATABASE_URL`, it uses PGlite and migrates automatically.
 
-### Pôr online e ligar as peças
+### Deploying and connecting the parts
 
-| Guia | Para quê |
-| ---- | -------- |
-| [Pôr online](docs/deploy.md) | Vercel, Neon e cron-job.org, com os segredos postos por `scripts/setup-vercel-env.sh` |
-| [Notificações com ntfy](docs/ntfy.md) | Gerar um tópico privado e subscrevê-lo no iPhone |
-| [Gravar as tags NFC](docs/tags-nfc.md) | Que tags comprar (e as de metal), e como gravar o endereço |
-| [Google Calendar](docs/google-calendar.md) | Ligar o calendário (opcional) |
-| [Demonstração pública](docs/demo.md) | Como funciona a demo: palavra-passe `demo` e dados apagados a cada 5 minutos |
+| Guide | Purpose |
+| ----- | ------- |
+| [Deploying](docs/deploy.md) | Vercel, Neon and cron-job.org, with the secrets set by `scripts/setup-vercel-env.sh` |
+| [Notifications with ntfy](docs/ntfy.md) | Generate a private topic and subscribe to it on the iPhone |
+| [Writing the NFC tags](docs/tags-nfc.md) | Which tags to buy (including metal-mount ones) and how to write the address |
+| [Google Calendar](docs/google-calendar.md) | Connect the calendar (optional) |
+| [Public demo](docs/demo.md) | How the demo works: password `demo` and data wiped every 5 minutes |
 
-## Testes
+## Tests
 
 ```bash
-npm test               # unitários (Vitest)
-npm run test:e2e       # ponta a ponta (Playwright, iPhone/WebKit, porta 4417)
-npm run test:e2e:demo  # o mesmo, contra um build de demonstração (porta 4421)
+npm test               # unit (Vitest)
+npm run test:e2e       # end to end (Playwright, iPhone/WebKit, port 4417)
+npm run screenshots    # docs/images/*.png from the app's web build and a demo server
 npm run lint
 npm run typecheck
 ```
 
-Na primeira vez, corre `npx playwright install webkit`. O e2e faz `next build` e `next start` com uma base de dados PGlite em memória, por isso pode correr ao lado do teu `npm run dev`.
+The first time, run `npx playwright install webkit`. The e2e run does `next build` and `next start` with an in-memory PGlite database, so it can run alongside your `npm run dev`.
 
-Base de dados:
+Database:
 
-- `npm run db:generate` cria as migrações a partir de `src/server/db/schema.ts`.
-- `npm run db:migrate` aplica-as; com `DATABASE_URL`, aplica-as no Neon.
+- `npm run db:generate` creates the migrations from `src/server/db/schema.ts`.
+- `npm run db:migrate` applies them; with `DATABASE_URL`, it applies them to Neon.
 
-## Licença
+## License
 
 [MIT](LICENSE) © Gustavo Santos

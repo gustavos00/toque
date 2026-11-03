@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { fetchDashboard, markTaskDone, snoozeTask } from "../../src/api";
 import {
   Button,
@@ -10,17 +10,30 @@ import {
   Row,
   Screen,
   Section,
+  TextAction,
 } from "../../src/components/ui";
 import {
+  formatDayKey,
   formatDayTime,
   formatEventSubject,
   formatEventType,
   formatLongToday,
   formatRemaining,
+  formatTime,
+  formatWeekday,
 } from "../../src/format";
 import { useApi } from "../../src/useApi";
 
-export default function DashboardScreen() {
+function summarize(running: number, pending: number, overdue: number): string {
+  const parts = [
+    running > 0 ? `${running} running` : null,
+    pending > 0 ? `${pending} due today` : null,
+    overdue > 0 ? `${overdue} overdue` : null,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : "Nothing waiting on you.";
+}
+
+export default function TodayScreen() {
   const router = useRouter();
   const { data, error, loading, reload } = useApi(fetchDashboard);
   const [now, setNow] = useState(new Date());
@@ -34,13 +47,14 @@ export default function DashboardScreen() {
     await reload();
   }
 
+  const today = formatDayKey(now);
   const timers =
     data?.timers.filter((t) => {
       if (t.phase === "running" || t.phase === "ready") return true;
       return (
         t.phase === "handled" &&
         t.handledAt !== null &&
-        new Date(t.handledAt).toDateString() === now.toDateString()
+        formatDayKey(new Date(t.handledAt)) === today
       );
     }) ?? [];
   const running = timers.filter((t) => t.phase === "running").length;
@@ -52,54 +66,46 @@ export default function DashboardScreen() {
     data.recentEvents.length === 0;
 
   return (
-    <Screen title="Painel" eyebrow={formatLongToday(now)}>
+    <Screen
+      title="Today"
+      eyebrow={formatLongToday(now)}
+      summary={data && !isEmpty ? summarize(running, pending, overdue) : undefined}
+    >
       <LoadState loading={loading} error={error} hasData={!!data} onRetry={reload} />
       {isEmpty ? (
-        <Section>
-          <Empty
-            title="Bem-vindo ao Toque"
-            description="Cria uma tarefa, associa-lhe uma tag NFC e toca com o iPhone para registar."
-          />
-          <Button title="Criar tarefa" onPress={() => router.push("/tarefa/nova")} />
-        </Section>
+        <>
+          <Section>
+            <Empty
+              title="No tasks yet"
+              description="Create a task, give it an NFC tag, and tap the tag with your iPhone to log it."
+            />
+          </Section>
+          <Button title="New task" onPress={() => router.push("/task/new")} />
+        </>
       ) : null}
       {data && !isEmpty ? (
         <>
-          <View style={{ flexDirection: "row", gap: 10, marginBottom: 24 }}>
-            <Pill value={running} label="a decorrer" color={colors.primary} />
-            <Pill
-              value={pending}
-              label="por fazer hoje"
-              color={pending > 0 ? colors.warning : colors.success}
-            />
-            <Pill
-              value={overdue}
-              label="em atraso"
-              color={overdue > 0 ? colors.danger : colors.success}
-            />
-          </View>
-
           {timers.length > 0 ? (
-            <Section title="Agora">
+            <Section title="Running">
               {timers.map((t) => (
                 <Row
                   key={t.task.id}
                   title={t.task.name}
-                  onPress={() => router.push(`/tarefa/${t.task.id}`)}
+                  onPress={() => router.push(`/task/${t.task.id}`)}
                   subtitle={
                     t.phase === "running" && t.endsAt
-                      ? `A decorrer · ${formatRemaining(t.endsAt, now)}`
+                      ? `Ends ${formatTime(t.endsAt)}`
                       : t.phase === "ready"
-                        ? "Terminou — por tratar"
-                        : "Tratado"
+                        ? "Finished, waiting for you"
+                        : t.handledAt
+                          ? `Handled ${formatTime(t.handledAt)}`
+                          : "Handled"
                   }
                   trailing={
-                    t.phase === "ready" ? (
-                      <Button
-                        title="Já tratei"
-                        onPress={() => act(markTaskDone, t.task.id)}
-                        tone="plain"
-                      />
+                    t.phase === "running" && t.endsAt ? (
+                      <Text style={styles.clock}>{formatRemaining(t.endsAt, now)}</Text>
+                    ) : t.phase === "ready" ? (
+                      <TextAction title="Handled" onPress={() => act(markTaskDone, t.task.id)} />
                     ) : undefined
                   }
                 />
@@ -107,31 +113,25 @@ export default function DashboardScreen() {
             </Section>
           ) : null}
 
-          <Section title="Hoje">
+          <Section title="Due today">
             {data.untilAckToday.length === 0 ? (
-              <Empty title="Nada marcado para hoje" description="Dia livre de avisos." />
+              <Empty title="Nothing due today" />
             ) : (
               data.untilAckToday.map(({ task, acked }) => (
                 <Row
                   key={task.id}
                   title={task.name}
-                  onPress={() => router.push(`/tarefa/${task.id}`)}
-                  subtitle={acked ? "Feito hoje" : "Por fazer"}
+                  onPress={() => router.push(`/task/${task.id}`)}
+                  subtitle={acked ? "Done today" : "Not done yet"}
                   trailing={
-                    acked ? (
-                      <Text style={{ color: colors.success }}>✓</Text>
-                    ) : (
-                      <View style={{ flexDirection: "row" }}>
-                        <Button
-                          title="Adiar"
+                    acked ? undefined : (
+                      <View style={styles.actions}>
+                        <TextAction
+                          title="Snooze"
+                          tone="muted"
                           onPress={() => act(snoozeTask, task.id)}
-                          tone="plain"
                         />
-                        <Button
-                          title="Feito"
-                          onPress={() => act(markTaskDone, task.id)}
-                          tone="plain"
-                        />
+                        <TextAction title="Done" onPress={() => act(markTaskDone, task.id)} />
                       </View>
                     )
                   }
@@ -141,23 +141,21 @@ export default function DashboardScreen() {
           </Section>
 
           {data.recurring.length > 0 ? (
-            <Section title="Periódicas">
+            <Section title="Recurring">
               {data.recurring.map((r) => (
                 <Row
                   key={r.task.id}
                   title={r.task.name}
-                  onPress={() => router.push(`/tarefa/${r.task.id}`)}
+                  onPress={() => router.push(`/task/${r.task.id}`)}
                   subtitle={
-                    r.overdue
-                      ? "Em atraso"
-                      : `Próxima: ${new Date(r.dueAt).toLocaleDateString("pt-PT", { weekday: "long" })}`
+                    r.overdue ? (
+                      <Text style={{ color: colors.danger }}>Overdue</Text>
+                    ) : (
+                      `Next ${formatWeekday(r.dueAt)}`
+                    )
                   }
                   trailing={
-                    <Button
-                      title="Feito"
-                      onPress={() => act(markTaskDone, r.task.id)}
-                      tone="plain"
-                    />
+                    <TextAction title="Done" onPress={() => act(markTaskDone, r.task.id)} />
                   }
                 />
               ))}
@@ -165,21 +163,20 @@ export default function DashboardScreen() {
           ) : null}
 
           <Section
-            title="Recente"
+            title="Recent"
             action={
-              <Text style={{ color: colors.primary }} onPress={() => router.push("/historico")}>
-                Ver tudo
-              </Text>
+              <TextAction title="See all" tone="muted" onPress={() => router.push("/history")} />
             }
           >
             {data.recentEvents.length === 0 ? (
-              <Empty title="Ainda não há registos." />
+              <Empty title="Nothing logged yet" />
             ) : (
               data.recentEvents.slice(0, 5).map((e) => (
                 <Row
                   key={e.id}
                   title={formatEventSubject(e)}
-                  subtitle={`${formatEventType(e)} · ${formatDayTime(e.at)}`}
+                  subtitle={formatEventType(e)}
+                  value={formatDayTime(e.at, now)}
                 />
               ))
             )}
@@ -190,11 +187,12 @@ export default function DashboardScreen() {
   );
 }
 
-function Pill({ value, label, color }: { value: number; label: string; color: string }) {
-  return (
-    <View style={{ flex: 1, backgroundColor: "#fff", borderRadius: 14, padding: 12 }}>
-      <Text style={{ fontSize: 28, fontWeight: "700", color }}>{value}</Text>
-      <Text style={{ fontSize: 13, color: colors.muted }}>{label}</Text>
-    </View>
-  );
-}
+const styles = StyleSheet.create({
+  clock: {
+    fontSize: 22,
+    color: colors.text,
+    fontVariant: ["tabular-nums"],
+    fontWeight: "300",
+  },
+  actions: { flexDirection: "row", gap: 12 },
+});

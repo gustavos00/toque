@@ -1,6 +1,8 @@
 import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { AppState } from "react-native";
+import { colors } from "../src/components/ui";
 import { syncReminderNotifications } from "../src/notifications";
 
 export default function RootLayout() {
@@ -14,15 +16,31 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <Stack>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="tarefa/[id]" options={{ title: "Tarefa" }} />
-      <Stack.Screen
-        name="t/[token]"
-        options={{ presentation: "transparentModal", headerShown: false }}
-      />
-      <Stack.Screen name="tag/[id]/associar" options={{ title: "Associar tag" }} />
-    </Stack>
+    <>
+      <StatusBar style="light" />
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: colors.bg },
+          headerTintColor: colors.text,
+          headerTitleStyle: { fontWeight: "600", fontSize: 17 },
+          headerShadowVisible: false,
+          headerBackButtonDisplayMode: "minimal",
+          contentStyle: { backgroundColor: colors.bg },
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="task/[id]" options={{ title: "Task" }} />
+        <Stack.Screen
+          name="t/[token]"
+          options={{
+            presentation: "transparentModal",
+            headerShown: false,
+            contentStyle: { backgroundColor: "transparent" },
+          }}
+        />
+        <Stack.Screen name="tag/[id]/link" options={{ title: "NFC tag" }} />
+      </Stack>
+    </>
   );
 }

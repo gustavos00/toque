@@ -2,9 +2,10 @@
 // Call it on app start, when the app returns to the foreground and after editing tasks.
 // It asks for permission, fetches GET /api/reminders/upcoming, cancels every pending local
 // notification and schedules the nearest ones again (iOS keeps at most 64 pending).
-// "Feito"/"Adiar" buttons POST to the signed URLs that came with each reminder.
+// "Done"/"Snooze" buttons POST to the signed URLs that came with each reminder.
 
 import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 import { getApiUrl, getToken } from "../api";
 
 /** iOS drops everything beyond 64 pending local notifications. */
@@ -49,12 +50,12 @@ function setUpNotifications(): void {
   void Notifications.setNotificationCategoryAsync(CATEGORY_ID, [
     {
       identifier: ACTION_DONE,
-      buttonTitle: "Feito",
+      buttonTitle: "Done",
       options: { opensAppToForeground: false },
     },
     {
       identifier: ACTION_SNOOZE,
-      buttonTitle: "Adiar",
+      buttonTitle: "Snooze",
       options: { opensAppToForeground: false },
     },
   ]);
@@ -110,7 +111,8 @@ async function fetchUpcomingReminders(): Promise<UpcomingReminder[] | null> {
  * signed out, offline or server error — the existing schedule is kept in those cases).
  */
 export async function syncReminderNotifications(): Promise<number | null> {
-  if (isSyncing) return null;
+  // The web build (screenshots) has no local notifications.
+  if (isSyncing || Platform.OS === "web") return null;
   isSyncing = true;
   try {
     setUpNotifications();

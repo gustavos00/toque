@@ -1,12 +1,13 @@
-// "Associar tag": read what a tag holds or write this tag's https URL to it (NFC).
+// Read what an NFC tag holds, or write this tag's https URL to it.
 
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { fetchTags } from "../../../src/api";
+import { Button, colors, fonts } from "../../../src/components/ui";
 import { isNfcAvailable, readTagUrl, writeTagUrl } from "../../../src/nfc";
 
-export default function AssociateTag() {
+export default function LinkTag() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [url, setUrl] = useState<string | null>(null);
   const [label, setLabel] = useState("");
@@ -21,7 +22,7 @@ export default function AssociateTag() {
         setUrl(tag?.url ?? null);
         setLabel(tag?.label ?? "");
       })
-      .catch(() => setStatus("Não foi possível carregar a etiqueta."));
+      .catch(() => setStatus("Could not load the tag."));
   }, [id]);
 
   async function run(action: () => Promise<string>) {
@@ -37,59 +38,40 @@ export default function AssociateTag() {
   const read = () =>
     run(async () => {
       const found = await readTagUrl();
-      if (!found) return "A etiqueta está vazia.";
-      return found === url
-        ? "Esta etiqueta já aponta para esta tarefa."
-        : `Tem: ${found}`;
+      if (!found) return "The tag is empty.";
+      return found === url ? "This tag already points to this task." : `It holds: ${found}`;
     });
   const write = () =>
     run(async () => {
-      if (!url) throw new Error("Sem URL para gravar");
+      if (!url) throw new Error("No URL to write");
       await writeTagUrl(url);
-      return "Etiqueta gravada.";
+      return "Tag written.";
     });
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{label || "Etiqueta"}</Text>
+      <Text style={styles.title}>{label || "Tag"}</Text>
       {url ? (
         <Text selectable style={styles.url}>
           {url}
         </Text>
       ) : null}
       {nfc === false ? (
-        <Text style={styles.url}>Este dispositivo não lê NFC.</Text>
+        <Text style={styles.note}>This device cannot read NFC.</Text>
       ) : (
         <>
-          <Pressable style={styles.button} onPress={write} disabled={!url}>
-            <Text style={styles.buttonText}>Gravar tag</Text>
-          </Pressable>
-          <Pressable style={styles.buttonAlt} onPress={read}>
-            <Text style={styles.buttonAltText}>Ler tag</Text>
-          </Pressable>
+          <Button title="Write tag" onPress={write} disabled={!url} />
+          <Button title="Read tag" tone="secondary" onPress={read} />
         </>
       )}
-      {status ? <Text style={styles.url}>{status}</Text> : null}
+      {status ? <Text style={styles.note}>{status}</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, gap: 14 },
-  title: { fontSize: 24, fontWeight: "700" },
-  url: { fontSize: 15, color: "#5b5b61" },
-  button: {
-    backgroundColor: "#007ea6",
-    borderRadius: 14,
-    padding: 16,
-    alignItems: "center",
-  },
-  buttonText: { color: "#fff", fontSize: 17, fontWeight: "600" },
-  buttonAlt: {
-    backgroundColor: "#e5e5ea",
-    borderRadius: 14,
-    padding: 16,
-    alignItems: "center",
-  },
-  buttonAltText: { fontSize: 17, fontWeight: "600" },
+  container: { flex: 1, padding: 20, backgroundColor: colors.bg },
+  title: { fontFamily: fonts.serif, fontSize: 30, color: colors.text, marginBottom: 8 },
+  url: { fontSize: 13, color: colors.faint, marginBottom: 32 },
+  note: { fontSize: 15, color: colors.soft, marginTop: 4 },
 });

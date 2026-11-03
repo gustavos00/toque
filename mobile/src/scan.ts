@@ -18,7 +18,7 @@ export async function fetchTagScanInfo(
 ): Promise<TagScanInfo | null> {
   const response = await fetch(`${getApiUrl()}/api/scan/${token}`);
   if (response.status === 404) return null;
-  if (!response.ok) throw new Error("Servidor indisponível");
+  if (!response.ok) throw new Error("Server unavailable");
   return (await response.json()) as TagScanInfo;
 }
 
@@ -32,6 +32,6 @@ export async function postTagAction(
     body: JSON.stringify({ action }),
   });
   if (!response.ok && response.status !== 404)
-    throw new Error("Servidor indisponível");
+    throw new Error("Server unavailable");
   return (await response.json()) as ScanResult;
 }

@@ -2,7 +2,18 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Text } from "react-native";
 import { fetchGoogleStatus, fetchSettings, logout, updateSettings } from "../../src/api";
-import { Button, colors, Field, Input, LoadState, Row, Screen, Section, Stepper, Toggle } from "../../src/components/ui";
+import {
+  colors,
+  Field,
+  Input,
+  LoadState,
+  Message,
+  Row,
+  Screen,
+  Section,
+  Stepper,
+  Toggle,
+} from "../../src/components/ui";
 import { formatMinutes } from "../../src/format";
 import { useApi } from "../../src/useApi";
 import type { UpdateSettingsRequest } from "../../../src/shared/settings";
@@ -21,7 +32,7 @@ export default function SettingsScreen() {
     try {
       setData(await updateSettings(patch));
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "Falha ao guardar");
+      setMessage(e instanceof Error ? e.message : "Could not save");
       await reload();
     }
   }
@@ -44,37 +55,31 @@ export default function SettingsScreen() {
   }
 
   return (
-    <Screen title="Definições">
+    <Screen title="Settings">
       <LoadState loading={loading} error={error} hasData={!!settings} onRetry={reload} />
-      {message ? <Text style={{ color: colors.danger, marginBottom: 8 }}>{message}</Text> : null}
+      <Message text={message} />
       {settings ? (
         <>
           <Section
-            title="Horas de silêncio"
-            footer="Nestas horas não chega nenhum aviso. Os que caírem aqui são enviados no fim."
+            title="Quiet hours"
+            footer="No reminders arrive during these hours. Any that fall inside are sent when they end."
           >
-            <Field label="Silenciar">
+            <Field label="Quiet hours">
               <Toggle value={settings.quietHours.enabled} onChange={(enabled) => save({ quietHours: { enabled } })} />
             </Field>
             {settings.quietHours.enabled ? (
               <>
-                <Field label="Das">{timeInput("qs", settings.quietHours.start, (start) => save({ quietHours: { start } }))}</Field>
-                <Field label="Até às">{timeInput("qe", settings.quietHours.end, (end) => save({ quietHours: { end } }))}</Field>
+                <Field label="From">{timeInput("qs", settings.quietHours.start, (start) => save({ quietHours: { start } }))}</Field>
+                <Field label="Until">{timeInput("qe", settings.quietHours.end, (end) => save({ quietHours: { end } }))}</Field>
               </>
             ) : null}
           </Section>
 
-          {google ? (
-            <Section title="Google Calendar" footer={google.lastError ?? undefined}>
-              <Row
-                title={google.connected ? "Ligado" : google.configured ? "Não ligado" : "Não configurado no servidor"}
-                subtitle={google.email ?? undefined}
-              />
-            </Section>
-          ) : null}
-
-          <Section title="Avisos por omissão" footer="Valores sugeridos ao criar tarefas novas. Não mudam as tarefas existentes.">
-            <Field label="Até confirmar (horas)">
+          <Section
+            title="Defaults for new tasks"
+            footer="Suggested when you create a task. Existing tasks keep their own values."
+          >
+            <Field label="Until done, at">
               <Input
                 value={drafts.ack ?? settings.defaults.untilAckReminderTimes.join(", ")}
                 onChangeText={(text) => {
@@ -86,7 +91,7 @@ export default function SettingsScreen() {
                 keyboardType="numbers-and-punctuation"
               />
             </Field>
-            <Field label="Temporizador esquecido (min)">
+            <Field label="Left unattended (min)">
               <Input
                 value={drafts.forgotten ?? settings.defaults.timerForgottenReminderMinutes.join(", ")}
                 onChangeText={(text) => {
@@ -98,15 +103,18 @@ export default function SettingsScreen() {
                 keyboardType="numbers-and-punctuation"
               />
             </Field>
-          </Section>
-
-          <Section footer="Quanto tempo o botão “Adiar” empurra o próximo aviso.">
-            <Field label="Periódicas às">
+            <Field label="Recurring, at">
               {timeInput("rec", settings.defaults.recurringReminderTime, (recurringReminderTime) =>
                 save({ defaults: { recurringReminderTime } }),
               )}
             </Field>
-            <Field label={`Adiar ${formatMinutes(settings.defaults.snoozeMinutes)}`}>
+          </Section>
+
+          <Section
+            title="Snooze"
+            footer="How far “Snooze” pushes the next reminder."
+          >
+            <Field label={formatMinutes(settings.defaults.snoozeMinutes)}>
               <Stepper
                 value={settings.defaults.snoozeMinutes}
                 min={5}
@@ -117,10 +125,25 @@ export default function SettingsScreen() {
             </Field>
           </Section>
 
+          {google ? (
+            <Section title="Google Calendar" footer={google.lastError ?? undefined}>
+              <Row
+                title={
+                  google.connected
+                    ? "Connected"
+                    : google.configured
+                      ? "Not connected"
+                      : "Not set up on the server"
+                }
+                subtitle={google.email ?? undefined}
+              />
+            </Section>
+          ) : null}
+
           <Section>
-            <Row title="Terminar sessão" tone="danger" onPress={leave} />
+            <Row title="Sign out" tone="danger" onPress={leave} />
           </Section>
-          <Text style={{ textAlign: "center", color: colors.muted }}>Toque · bom, bonito e barato</Text>
+          <Text style={{ color: colors.faint, fontSize: 13 }}>Toque 0.1</Text>
         </>
       ) : null}
     </Screen>
