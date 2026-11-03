@@ -7,8 +7,6 @@
 Hold your iPhone against the washing machine and Toque starts counting down.
 When it finishes, it notifies you. If you forget the laundry inside, it reminds you again.
 
-[**Try the demo →**](https://toque-demo.vercel.app)
-
 ![Next.js 16](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![iPhone app](https://img.shields.io/badge/iPhone-Expo-000020?logo=expo&logoColor=white)
