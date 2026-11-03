@@ -176,7 +176,7 @@ describe("callback", () => {
     expect(response.headers.get("location")).toContain("google=ok");
     await Promise.all(afterTasks.splice(0));
     expect((await getGoogleConnection(db))?.lastError).toMatch(
-      /primeira sincronização falhou/,
+      /initial sync failed/,
     );
   });
 

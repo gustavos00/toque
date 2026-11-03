@@ -48,7 +48,7 @@ describe("GET /api/reminders/upcoming", () => {
     expect(await response.json()).toEqual({ reminders: [] });
   });
 
-  it("lists future reminders nearest first, with signed Feito/Adiar URLs", async () => {
+  it("lists future reminders nearest first, with signed Done/Snooze URLs", async () => {
     const db = await createTestDb();
     await db.insert(tasks).values({
       name: "Regar plantas",

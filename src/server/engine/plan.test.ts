@@ -74,8 +74,8 @@ describe("buildDesiredNotifications", () => {
       "16:00",
     ]);
     expect(rows[0].key).toMatch(/^snooze:/);
-    expect(rows[0].payload.message).toContain("Adiado até às 15:50.");
-    expect(rows[0].payload.title).toContain("esqueceste-te");
+    expect(rows[0].payload.message).toContain("Snoozed until 15:50.");
+    expect(rows[0].payload.title).toContain("did you forget");
   });
 });
 

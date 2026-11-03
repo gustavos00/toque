@@ -22,7 +22,7 @@ export async function GET(
 ) {
   const { token } = await ctx.params;
   const info = await getTagScanInfo(token);
-  if (!info) return createErrorResponse(404, "Etiqueta não encontrada");
+  if (!info) return createErrorResponse(404, "Tag not found");
   return Response.json(info, { headers: { "Cache-Control": "no-store" } });
 }
 

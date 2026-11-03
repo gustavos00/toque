@@ -1,84 +1,84 @@
-# Notificações com ntfy
+# Notifications with ntfy
 
-O Toque não envia notificações push diretamente: publica mensagens num **tópico** do [ntfy.sh](https://ntfy.sh) e a app ntfy do iPhone mostra-as. É gratuito e não precisa de conta.
+Toque does not send push notifications directly: it publishes messages to a **topic** on [ntfy.sh](https://ntfy.sh) and the ntfy app on the iPhone shows them. It is free and needs no account.
 
-## 1. Instalar a app
+## 1. Install the app
 
-1. No iPhone, abra a App Store e instale **ntfy** (programador: Philipp Heckel).
-2. Abra a app e, quando pedir, **permita as notificações**.
-3. Em *Definições → Notificações → ntfy*, confirme que estão ativas as opções *Ecrã bloqueado*, *Central de notificações* e *Faixas*. Se quiser que os alertas do lixo furem o modo Foco, ative também *Notificações sensíveis ao tempo*.
+1. On the iPhone, open the App Store and install **ntfy** (developer: Philipp Heckel).
+2. Open the app and, when asked, **allow notifications**.
+3. In *Settings → Notifications → ntfy*, confirm that *Lock Screen*, *Notification Centre* and *Banners* are on. If you want the bin alerts to break through Focus mode, also turn on *Time Sensitive Notifications*.
 
-## 2. Escolher um tópico aleatório
+## 2. Choose a random topic
 
-No ntfy.sh público **não há palavras-passe**: quem souber o nome do tópico consegue ler as suas notificações e enviar mensagens falsas para o seu telemóvel. O nome do tópico é, por isso, **o único segredo**. Tem de ser longo e impossível de adivinhar — nada de `toque`, `casa-<o-seu-nome>` ou parecido.
+On the public ntfy.sh there are **no passwords**: anyone who knows the topic name can read its notifications and send fake messages to your phone. The topic name is therefore **the only secret**. It must be long and impossible to guess: no `toque`, `home-<your-name>` or the like.
 
-Gere um no Mac/Linux:
+Generate one on Mac/Linux:
 
 ```bash
 echo "toque-$(openssl rand -hex 16)"
-# exemplo: toque-3f9c2a7b1e6d4058a2c7e9b0d1f4a6c8
+# example: toque-3f9c2a7b1e6d4058a2c7e9b0d1f4a6c8
 ```
 
-Guarde esse valor: é o `NTFY_TOPIC` que vai pôr no Vercel (ver [deploy.md](deploy.md)). Não o publique no Git, em capturas de ecrã nem em mensagens.
+Keep that value: it is the `NTFY_TOPIC` you will set on Vercel (see [deploy.md](deploy.md)). Don't publish it in Git, in screenshots or in messages.
 
-## 3. Subscrever o tópico no iPhone
+## 3. Subscribe to the topic on the iPhone
 
-1. Na app ntfy, toque em **+** (canto superior direito).
-2. Em *Topic name*, cole o tópico gerado acima.
-3. Deixe *Use another server* desligado (usa `https://ntfy.sh`), a não ser que tenha o seu próprio servidor — nesse caso use o mesmo endereço que pôs em `NTFY_BASE_URL`.
-4. Toque em **Subscribe**.
+1. In the ntfy app, tap **+** (top right corner).
+2. In *Topic name*, paste the topic generated above.
+3. Leave *Use another server* off (it uses `https://ntfy.sh`), unless you have your own server; in that case use the same address you set in `NTFY_BASE_URL`.
+4. Tap **Subscribe**.
 
-## 4. Testar com `curl`
+## 4. Test with `curl`
 
-Num terminal (substitua pelo seu tópico):
+In a terminal (replace with your topic):
 
 ```bash
-curl -d "Teste do Toque 👋" https://ntfy.sh/toque-<o-seu-tópico>
+curl -d "Toque test 👋" https://ntfy.sh/toque-<your-topic>
 ```
 
-Com título, prioridade e etiqueta (é o mesmo formato que o Toque usa):
+With a title, priority and tag (this is the same format Toque uses):
 
 ```bash
 curl \
-  -H "Title: Máquina da roupa" \
+  -H "Title: Washing machine" \
   -H "Priority: high" \
   -H "Tags: basket" \
-  -d "A roupa está pronta para estender." \
-  https://ntfy.sh/toque-<o-seu-tópico>
+  -d "The laundry is ready to hang out." \
+  https://ntfy.sh/toque-<your-topic>
 ```
 
-A notificação deve aparecer no iPhone em poucos segundos. Se não aparecer:
+The notification should appear on the iPhone within a few seconds. If it doesn't:
 
-- confirme que o tópico na app é **exatamente** igual (sem espaços no fim);
-- abra a app ntfy uma vez — no iOS a primeira entrega pode depender disso;
-- confirme as permissões em *Definições → Notificações → ntfy*;
-- veja se o modo Foco está a silenciar a app.
+- confirm that the topic in the app is **exactly** the same (no trailing spaces);
+- open the ntfy app once, since on iOS the first delivery may depend on it;
+- check the permissions in *Settings → Notifications → ntfy*;
+- check whether Focus mode is silencing the app.
 
-## 5. Variáveis de ambiente usadas pelo Toque
+## 5. Environment variables used by Toque
 
-| Variável | Obrigatória | Para quê |
+| Variable | Required | Purpose |
 | --- | --- | --- |
-| `NTFY_TOPIC` | sim, se não definir o tópico nas Definições | O tópico aleatório acima. |
-| `NTFY_BASE_URL` | não | Servidor ntfy. Por omissão `https://ntfy.sh`. |
-| `NTFY_TOKEN` | não | Só se usar um servidor ntfy com autenticação (ou uma conta ntfy.sh paga com tópicos reservados). Enviado como `Authorization: Bearer …`. Só existe como variável de ambiente. |
-| `TOQUE_ACTION_SECRET` | recomendada | Pelo menos 16 caracteres. Assina os botões "Feito" / "Adiar" das notificações. |
-| `TOQUE_PUBLIC_URL` | recomendada | Endereço público da app, usado nos botões e no link ao tocar na notificação. |
+| `NTFY_TOPIC` | yes, unless you set the topic in Settings | The random topic above. |
+| `NTFY_BASE_URL` | no | ntfy server. Defaults to `https://ntfy.sh`. |
+| `NTFY_TOKEN` | no | Only if you use an ntfy server with authentication (or a paid ntfy.sh account with reserved topics). Sent as `Authorization: Bearer …`. It exists only as an environment variable. |
+| `TOQUE_ACTION_SECRET` | recommended | At least 16 characters. Signs the "Done" / "Snooze" buttons on notifications. |
+| `TOQUE_PUBLIC_URL` | recommended | Public address of the app, used in the buttons and in the link when you tap the notification. |
 
-### Que valor ganha
+### Which value wins
 
-As **Definições** da app ganham às variáveis de ambiente:
+The app's **Settings** win over environment variables:
 
-- **Tópico**: o das Definições, se estiver preenchido; senão `NTFY_TOPIC`.
-- **Servidor**: o das Definições, só se o tiver mudado de `https://ntfy.sh`; senão `NTFY_BASE_URL`; se também estiver vazio, `https://ntfy.sh`.
-- **Token**: só `NTFY_TOKEN` (não há campo nas Definições).
+- **Topic**: the one in Settings, if filled in; otherwise `NTFY_TOPIC`.
+- **Server**: the one in Settings, only if you changed it from `https://ntfy.sh`; otherwise `NTFY_BASE_URL`; if that is also empty, `https://ntfy.sh`.
+- **Token**: only `NTFY_TOKEN` (there is no field in Settings).
 
-Sem tópico (nem nas Definições nem em `NTFY_TOPIC`), o envio fica desligado: o Toque continua a funcionar e os avisos ficam em espera. Quando configurar um tópico, envia apenas o aviso mais recente de cada tarefa (não chega uma avalanche de avisos antigos).
+Without a topic (neither in Settings nor in `NTFY_TOPIC`), sending is off: Toque keeps working and the alerts wait. When you configure a topic, it sends only the most recent alert of each task (you don't get an avalanche of old alerts).
 
-### Botões e link das notificações
+### Notification buttons and link
 
-- Sem `TOQUE_ACTION_SECRET` (ou com menos de 16 caracteres), as notificações chegam **sem botões** e `/api/actions/…` responde 403.
-- O endereço dos botões e do link vem de `TOQUE_PUBLIC_URL`; se não existir, usa o domínio de produção do Vercel (`VERCEL_PROJECT_PRODUCTION_URL`, automático no Vercel). Sem nenhum dos dois, as notificações chegam sem botões e sem link.
+- Without `TOQUE_ACTION_SECRET` (or with fewer than 16 characters), notifications arrive **without buttons** and `/api/actions/…` answers 403.
+- The address for the buttons and the link comes from `TOQUE_PUBLIC_URL`; if it is missing, the Vercel production domain is used (`VERCEL_PROJECT_PRODUCTION_URL`, automatic on Vercel). With neither, notifications arrive without buttons and without a link.
 
-## Mudar de tópico
+## Changing topic
 
-Se suspeitar que o tópico foi exposto: gere outro, atualize-o nas Definições do Toque (ou em `NTFY_TOPIC` no Vercel, seguido de *Redeploy*), subscreva o novo tópico na app e apague o antigo (deslize para a esquerda na lista).
+If you suspect the topic was exposed: generate another, update it in Toque's Settings (or in `NTFY_TOPIC` on Vercel, followed by a *Redeploy*), subscribe to the new topic in the app and delete the old one (swipe left in the list).

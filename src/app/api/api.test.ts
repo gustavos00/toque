@@ -12,8 +12,8 @@ import type { DashboardDto, EventListDto, TagDto, TaskDto } from "@/shared/api";
 
 vi.mock("@/server/engine", () => ({
   handleScan: vi.fn(async () => ({
-    title: "Máquina",
-    message: "Acaba às 15:40",
+    title: "Machine",
+    message: "Ends at 15:40",
     tone: "started",
   })),
   runTick: vi.fn(async () => ({ sent: 2 })),
@@ -82,7 +82,7 @@ function createContext<T extends Record<string, string>>(params: T) {
 
 async function createTask(
   body: unknown = {
-    name: "Máquina",
+    name: "Machine",
     kind: "timer",
     config: { durationMinutes: 90 },
   },
@@ -109,11 +109,11 @@ describe("auth", () => {
   });
 
   it("logs in with JSON and sets the cookie", async () => {
-    vi.stubEnv("TOQUE_PASSWORD", "segredo");
+    vi.stubEnv("TOQUE_PASSWORD", "secret");
     const ok = await loginRoute.POST(
       createRequest("/api/auth/login", {
         method: "POST",
-        body: { password: "segredo" },
+        body: { password: "secret" },
         headers: { cookie: "" },
       }),
     );
@@ -146,7 +146,7 @@ describe("tasks", () => {
     const { response, task } = await createTask();
     expect(response.status).toBe(201);
     expect(task).toMatchObject({
-      name: "Máquina",
+      name: "Machine",
       kind: "timer",
       enabled: true,
       state: null,
@@ -168,13 +168,13 @@ describe("tasks", () => {
     const patched = await taskRoute.PATCH(
       createRequest(`/api/tasks/${task.id}`, {
         method: "PATCH",
-        body: { name: "Máquina da roupa", config: { durationMinutes: 60 } },
+        body: { name: "Washing machine", config: { durationMinutes: 60 } },
       }),
       createContext({ id: task.id }),
     );
     expect(patched.status).toBe(200);
     expect(await patched.json()).toMatchObject({
-      name: "Máquina da roupa",
+      name: "Washing machine",
       config: { durationMinutes: 60 },
     });
 
@@ -234,7 +234,7 @@ describe("tags", () => {
     vi.stubEnv("TOQUE_PUBLIC_URL", "https://toque.example.pt/");
     const { task } = await createTask();
     const { response, tag } = await createTag({
-      label: "Máquina",
+      label: "Machine",
       taskId: task.id,
     });
     expect(response.status).toBe(201);
@@ -249,7 +249,7 @@ describe("tags", () => {
       )
     ).json()) as TaskDto;
     expect(detail.tags).toEqual([
-      { id: tag.id, label: "Máquina", action: "start" },
+      { id: tag.id, label: "Machine", action: "start" },
     ]);
 
     const { tag: other } = await createTag({
@@ -265,7 +265,7 @@ describe("tags", () => {
     ).json()) as TaskDto[];
     expect(list[0].tags.map((item) => [item.label, item.action])).toEqual([
       ["Estendal", "complete"],
-      ["Máquina", "start"],
+      ["Machine", "start"],
     ]);
 
     const unassigned = await tagRoute.PATCH(
@@ -277,7 +277,7 @@ describe("tags", () => {
     );
     expect(await unassigned.json()).toMatchObject({
       taskId: null,
-      label: "Máquina",
+      label: "Machine",
     });
 
     const unchanged = await tagRoute.PATCH(
@@ -325,7 +325,7 @@ describe("scan /api/scan/:token", () => {
 
     const response = await post(tag.token);
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ message: "Acaba às 15:40" });
+    expect(await response.json()).toMatchObject({ message: "Ends at 15:40" });
     expect(engine.handleScan).toHaveBeenCalledWith({
       taskId: task.id,
       tagId: tag.id,
@@ -355,7 +355,7 @@ describe("scan /api/scan/:token", () => {
     );
     expect(await response.json()).toEqual({
       tagLabel: "Estendal",
-      taskName: "Máquina",
+      taskName: "Machine",
       canScan: true,
     });
     expect(engine.handleScan).not.toHaveBeenCalled();
@@ -390,7 +390,7 @@ describe("scan /api/scan/:token", () => {
 
     const { tag } = await createTag({ label: "Solta" });
     const loose = await post(tag.token);
-    expect((await loose.json()).message).toContain("ainda não está associada");
+    expect((await loose.json()).message).toContain("isn't linked to any task yet");
     expect(engine.handleScan).not.toHaveBeenCalled();
     expect((await post(tag.token, { action: "nope" })).status).toBe(400);
   });
@@ -405,7 +405,7 @@ describe("tag page /t/:token", () => {
       createContext({ token: tag.token }),
     );
     const html = await response.text();
-    expect(html).toContain("Abre a app Toque");
+    expect(html).toContain("Open the Toque app");
     expect(html).toContain(`toque://t/${tag.token}`);
     expect(engine.handleScan).not.toHaveBeenCalled();
     expect(
@@ -468,7 +468,7 @@ describe("events and dashboard", () => {
       "timer_started",
       "scan",
     ]);
-    expect(first.events[0].taskName).toBe("Máquina");
+    expect(first.events[0].taskName).toBe("Machine");
     expect(first.nextBeforeId).not.toBeNull();
 
     const second = (await (
@@ -493,7 +493,7 @@ describe("events and dashboard", () => {
       config: { weekdays: [1, 2, 3, 4, 5, 6, 7] },
     });
     const { task: plants } = await createTask({
-      name: "Plantas",
+      name: "Plants",
       kind: "recurring",
       config: { everyDays: 3 },
     });
@@ -519,7 +519,7 @@ describe("events and dashboard", () => {
       dashboard.timers.map((item) => [item.task.name, item.phase]),
     ).toEqual([
       ["Secadora", "ready"],
-      ["Máquina", "running"],
+      ["Machine", "running"],
     ]);
     expect(dashboard.untilAckToday).toEqual([
       expect.objectContaining({

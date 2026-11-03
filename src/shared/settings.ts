@@ -20,7 +20,7 @@ const ntfySchema = z.object({
   /** Topic name; null = notifications disabled. Treat it like a secret. */
   topic: z
     .string()
-    .regex(/^[A-Za-z0-9_-]{1,64}$/, "Só letras, números, _ e -")
+    .regex(/^[A-Za-z0-9_-]{1,64}$/, "Letters, numbers, _ and - only")
     .nullable(),
 });
 

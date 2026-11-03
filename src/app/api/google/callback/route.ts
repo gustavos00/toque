@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     console.error("Creating the Toque calendar failed", error);
     await setGoogleLastError(
       db,
-      "Ligado ao Google, mas não foi possível criar o calendário Toque.",
+      "Connected to Google, but the Toque calendar could not be created.",
     );
     return redirectToSettings(request, "erro");
   }
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
       console.error("Initial calendar sync failed", error);
       await setGoogleLastError(
         db,
-        'Ligado ao Google, mas a primeira sincronização falhou. Tenta "Sincronizar agora".',
+        'Connected to Google, but the initial sync failed. Try "Sync now".',
       ).catch(() => {});
     }
   });

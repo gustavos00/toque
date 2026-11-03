@@ -33,7 +33,7 @@ const OCCURRENCE_RE = /^[0-9-]{1,32}$/;
 
 /**
  * HMAC-SHA256 over "v2.<action>.<taskId>.<occurrence>.<exp>", base64url. The occurrence binds a
- * button to the alert it was sent for, so yesterday's "Feito" can't complete today.
+ * button to the alert it was sent for, so yesterday's "Done" can't complete today.
  * v1 links (no occurrence) are rejected: they can't be bound, and expire within 24 h anyway.
  */
 export function signAction(

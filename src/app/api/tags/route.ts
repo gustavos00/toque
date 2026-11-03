@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   const db = await getDb();
   const { label, taskId, action } = parsed.data;
   if (taskId && !(await getTaskById(db, taskId))) {
-    return createErrorResponse(400, "Tarefa não encontrada");
+    return createErrorResponse(400, "Task not found");
   }
   const [row] = await db
     .insert(tags)

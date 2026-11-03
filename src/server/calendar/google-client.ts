@@ -58,7 +58,7 @@ export function createGoogleCalendarClient(
   ): Promise<Response> {
     const send = async (forceRefresh: boolean) => {
       const token = await options.getAccessToken({ forceRefresh });
-      if (!token) throw new GoogleCalendarError(401, "sem ligação ao Google");
+      if (!token) throw new GoogleCalendarError(401, "no Google connection");
       return doFetch(`${API_BASE}${path}`, {
         method,
         headers: {

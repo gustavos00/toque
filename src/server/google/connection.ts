@@ -41,7 +41,7 @@ export async function saveGoogleConnection(
   now = new Date(),
 ): Promise<GoogleConnectionRow> {
   if (isDemoMode()) {
-    throw new GoogleAuthError("not_configured", "Indisponível na demonstração");
+    throw new GoogleAuthError("not_configured", "Unavailable in the demo");
   }
   const existing = await getGoogleConnection(db);
   const isSameAccount = existing?.email === tokens.email;
@@ -104,13 +104,13 @@ export async function getGoogleAccessToken(
   deps: { db?: Db; now?: Date; fetch?: FetchFn; forceRefresh?: boolean } = {},
 ): Promise<string> {
   if (isDemoMode()) {
-    throw new GoogleAuthError("not_configured", "Indisponível na demonstração");
+    throw new GoogleAuthError("not_configured", "Unavailable in the demo");
   }
   const db = deps.db ?? (await getDb());
   const now = deps.now ?? new Date();
   const row = await getGoogleConnection(db);
   if (!row || row.brokenAt) {
-    throw new GoogleAuthError("not_connected", "Google Calendar não ligado");
+    throw new GoogleAuthError("not_connected", "Google Calendar is not connected");
   }
   if (
     !deps.forceRefresh &&

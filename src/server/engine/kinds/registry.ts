@@ -14,6 +14,6 @@ const HANDLERS: { [K in TaskKind]: KindHandler<K> } = {
 /** The handler for a task's kind, typed loosely so callers don't need to narrow the task. */
 export function getKindHandler(task: Task): KindHandler<TaskKind> {
   const handler = HANDLERS[task.kind] as KindHandler<TaskKind> | undefined;
-  if (!handler) throw new Error(`Tipo de tarefa sem handler: ${task.kind}`);
+  if (!handler) throw new Error(`Task kind without a handler: ${task.kind}`);
   return handler;
 }

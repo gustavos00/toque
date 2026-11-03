@@ -29,9 +29,9 @@ export async function GET(
   if (denied) return denied;
 
   const { id } = await ctx.params;
-  if (!isUuid(id)) return createNotFoundResponse("Etiqueta");
+  if (!isUuid(id)) return createNotFoundResponse("Tag");
   const tag = await getTagById(await getDb(), id);
-  if (!tag) return createNotFoundResponse("Etiqueta");
+  if (!tag) return createNotFoundResponse("Tag");
   return Response.json(buildTagDto(tag, getPublicBaseUrl(request)));
 }
 
@@ -43,14 +43,14 @@ export async function PATCH(
   if (denied) return denied;
 
   const { id } = await ctx.params;
-  if (!isUuid(id)) return createNotFoundResponse("Etiqueta");
+  if (!isUuid(id)) return createNotFoundResponse("Tag");
   const parsed = await parseJsonBody(request, updateTagRequestSchema);
   if (!parsed.ok) return parsed.response;
 
   const db = await getDb();
   const { label, taskId, action } = parsed.data;
   if (taskId && !(await getTaskById(db, taskId))) {
-    return createErrorResponse(400, "Tarefa não encontrada");
+    return createErrorResponse(400, "Task not found");
   }
   const changes = {
     ...(label !== undefined && { label }),
@@ -61,7 +61,7 @@ export async function PATCH(
     Object.keys(changes).length > 0
       ? await db.update(tags).set(changes).where(eq(tags.id, id)).returning()
       : [await getTagById(db, id)];
-  if (!row) return createNotFoundResponse("Etiqueta");
+  if (!row) return createNotFoundResponse("Tag");
   return Response.json(buildTagDto(row, getPublicBaseUrl(request)));
 }
 
@@ -73,13 +73,13 @@ export async function DELETE(
   if (denied) return denied;
 
   const { id } = await ctx.params;
-  if (!isUuid(id)) return createNotFoundResponse("Etiqueta");
+  if (!isUuid(id)) return createNotFoundResponse("Tag");
   const [deleted] = await (
     await getDb()
   )
     .delete(tags)
     .where(eq(tags.id, id))
     .returning();
-  if (!deleted) return createNotFoundResponse("Etiqueta");
+  if (!deleted) return createNotFoundResponse("Tag");
   return new Response(null, { status: 204 });
 }

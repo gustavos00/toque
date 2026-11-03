@@ -22,9 +22,9 @@ function isCronAuthorized(request: NextRequest, secret: string) {
 async function handleTick(request: NextRequest) {
   const secret = process.env.TOQUE_CRON_SECRET;
   if (!secret)
-    return createErrorResponse(503, "TOQUE_CRON_SECRET não está configurado");
+    return createErrorResponse(503, "TOQUE_CRON_SECRET is not configured");
   if (!isCronAuthorized(request, secret))
-    return createErrorResponse(401, "Não autorizado");
+    return createErrorResponse(401, "Not authorized");
 
   const result = await runTick(new Date());
   return Response.json(result, { headers: { "Cache-Control": "no-store" } });

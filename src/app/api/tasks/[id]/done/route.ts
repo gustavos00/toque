@@ -17,6 +17,6 @@ export async function POST(
 
   const { id } = await ctx.params;
   if (!isUuid(id) || !(await getTaskById(await getDb(), id)))
-    return createNotFoundResponse("Tarefa");
+    return createNotFoundResponse("Task");
   return Response.json(await handleTaskDone(id, new Date()));
 }

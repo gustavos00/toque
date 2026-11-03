@@ -14,7 +14,7 @@ import {
  * Where a timer task is in its cycle, from task_state:
  * - idle: never run (no cycle, never done)
  * - running: now < timerEndsAt
- * - ready: ended and not handled since ("Pronta · por estender")
+ * - ready: ended and not handled since ("Ready · needs handling")
  * - handled: lastDoneAt >= timerEndsAt, or the cycle was cleared after being
  *   done ("Tratada")
  * Works whether the engine clears timerStartedAt/timerEndsAt on "done" or
@@ -108,7 +108,7 @@ export function getRecurringDueAt(
 
 /**
  * When the task would be due next if it were done now — what the UI shows as
- * "próxima: terça". Equals getRecurringDueAt after a scan at `now`.
+ * "next: Tuesday". Equals getRecurringDueAt after a scan at `now`.
  */
 export function getNextRecurringOccurrence(
   config: RecurringConfig,

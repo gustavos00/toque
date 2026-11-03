@@ -42,8 +42,8 @@ export function getEscalationPriority(index: number, count: number): number {
 function describeNextDate(config: UntilAckConfig, today: LocalDate): string {
   const next = getNextUntilAckDate(config, today);
   return next
-    ? `Próxima vez: ${formatLocalDateLabel(next)}.`
-    : "Sem mais dias marcados.";
+    ? `Next time: ${formatLocalDateLabel(next)}.`
+    : "No more scheduled days.";
 }
 
 function buildDayReminders(
@@ -56,10 +56,10 @@ function buildDayReminders(
     const isFirst = index === 0;
     const isLast = index === times.length - 1;
     const message = isFirst
-      ? "Hoje é o dia. Toca na tag quando estiver feito."
+      ? "Today is the day. Tap the tag when it's done."
       : isLast
-        ? "Último aviso de hoje — ainda não está feito!"
-        : `Ainda não está feito (aviso ${index + 1} de ${times.length}).`;
+        ? "Last reminder for today — it's still not done!"
+        : `Still not done (reminder ${index + 1} of ${times.length}).`;
     return {
       key: buildNotificationKey("until_ack", task.id, date, time),
       kind: "until_ack_reminder",
@@ -88,7 +88,7 @@ function acknowledgeToday(
       events: [],
       result: {
         title: task.name,
-        message: `Hoje não é dia. ${describeNextDate(task.config, today)}`,
+        message: `Not scheduled today. ${describeNextDate(task.config, today)}`,
         tone: "info",
       },
     };
@@ -99,7 +99,7 @@ function acknowledgeToday(
       events: [],
       result: {
         title: task.name,
-        message: `Já estava feito hoje. ${describeNextDate(task.config, today)}`,
+        message: `Already done today. ${describeNextDate(task.config, today)}`,
         tone: "info",
       },
     };
@@ -109,7 +109,7 @@ function acknowledgeToday(
     events: [{ type: "acked", data: { date: today } }],
     result: {
       title: task.name,
-      message: `Feito por hoje. ${describeNextDate(task.config, today)}`,
+      message: `Done for today. ${describeNextDate(task.config, today)}`,
       tone: "done",
     },
   };

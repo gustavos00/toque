@@ -9,7 +9,7 @@ import {
 } from "@/shared/time";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const WEEKDAY_LABELS = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 /** Minutes since local midnight for a "HH:MM" string. */
 export function getMinutesOfDay(time: LocalTime): number {
@@ -31,7 +31,7 @@ export function getLocalDaysBetween(from: LocalDate, to: LocalDate): number {
   return Math.round((toUtc(to) - toUtc(from)) / DAY_MS);
 }
 
-/** "qui, 15/10" — short European Portuguese label for a local date. */
+/** "Thu, 15/10" — short English label for a local date (weekday, day/month). */
 export function formatLocalDateLabel(date: LocalDate): string {
   const [, month, day] = date.split("-");
   return `${WEEKDAY_LABELS[getIsoWeekday(date) - 1]}, ${day}/${month}`;

@@ -21,7 +21,7 @@ async function insertTask() {
   const [task] = await db
     .insert(tasks)
     .values({
-      name: "Máquina",
+      name: "Machine",
       kind: "timer",
       config: {
         durationMinutes: 60,

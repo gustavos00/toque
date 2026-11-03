@@ -161,7 +161,7 @@ export type DashboardDto = {
   /**
    * All recurring tasks, soonest due first (see getRecurringDueAt).
    * overdue = now >= dueAt; nextDueAt = when it would be due if done now
-   * ("próxima: terça").
+   * ("next: Tuesday").
    */
   recurring: {
     task: TaskDto;

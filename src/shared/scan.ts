@@ -9,9 +9,9 @@
 export type ScanTone = "started" | "done" | "cancelled" | "info";
 
 export type ScanResult = {
-  /** Short heading, Portuguese, e.g. "Máquina a lavar". */
+  /** Short heading, Portuguese, e.g. "Machine a lavar". */
   title: string;
-  /** One line, Portuguese, e.g. "Acaba às 15:40". */
+  /** One line, e.g. "Ends at 15:40". */
   message: string;
   tone: ScanTone;
 };

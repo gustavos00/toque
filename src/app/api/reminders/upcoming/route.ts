@@ -1,6 +1,6 @@
 // GET /api/reminders/upcoming?limit=N → { reminders: UpcomingReminder[] }
 // The next reminders of the signed-in user (cookie or Bearer), nearest first, with signed
-// "Feito"/"Adiar" URLs. The app turns them into local notifications. Default 50, max 64
+// "Done"/"Snooze" URLs. The app turns them into local notifications. Default 50, max 64
 // (iOS keeps at most 64 pending local notifications).
 
 import type { NextRequest } from "next/server";
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   const raw = request.nextUrl.searchParams.get("limit");
   const limit = raw === null ? DEFAULT_LIMIT : Number(raw);
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT)
-    return createErrorResponse(400, `limit deve estar entre 1 e ${MAX_LIMIT}`);
+    return createErrorResponse(400, `limit must be between 1 and ${MAX_LIMIT}`);
 
   const reminders = await listUpcomingReminders({
     now: new Date(),

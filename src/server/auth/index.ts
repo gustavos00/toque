@@ -52,7 +52,7 @@ export async function requireSession(
 ): Promise<Response | null> {
   if (!(await hasSession(request))) {
     return Response.json(
-      { error: "Sessão inválida ou expirada" },
+      { error: "Invalid or expired session" },
       { status: 401 },
     );
   }

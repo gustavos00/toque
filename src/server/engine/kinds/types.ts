@@ -35,7 +35,7 @@ export type PlannedNotification = {
   payload: NotificationPayload;
 };
 
-/** What a scan / "feito" changes: a state patch, history events and the text shown to the user. */
+/** What a scan / "done" changes: a state patch, history events and the text shown to the user. */
 export type TaskOutcome = {
   patch: Partial<EngineTaskState>;
   events: { type: EventType; data?: Record<string, unknown> }[];
@@ -72,6 +72,6 @@ export type KindHandler<K extends TaskKind> = {
   ): string | null;
   /** NFC tag scanned (a "start" tag). */
   handleScan(task: TaskOf<K>, state: EngineTaskState, now: Date): TaskOutcome;
-  /** A "complete" tag scanned, or "Feito"/"Já tratei" tapped on a notification. */
+  /** A "complete" tag scanned, or "Done"/"Handled" tapped on a notification. */
   handleDone(task: TaskOf<K>, state: EngineTaskState, now: Date): TaskOutcome;
 };

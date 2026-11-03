@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacidade · Toque",
+  title: "Privacy · Toque",
 };
 
 // Public page (excluded in src/proxy.ts): Google's OAuth consent screen needs
@@ -10,58 +10,58 @@ export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-12 text-[17px] leading-relaxed">
       <h1 className="mb-2 text-3xl font-bold tracking-tight">
-        Política de privacidade
+        Privacy policy
       </h1>
       <p className="mb-8 text-gray-500">
-        Toque · última atualização: outubro de 2026
+        Toque · last updated: October 2026
       </p>
 
       <section className="space-y-4">
         <p>
-          O Toque é uma aplicação pessoal, usada apenas pelo seu autor, para
-          gerir tarefas da casa com tags NFC. Não tem outros utilizadores, não
-          mostra publicidade e não vende nem partilha dados com terceiros.
+          Toque is a personal app, used only by its author, for managing
+          household tasks with NFC tags. It has no other users, shows no
+          advertising and does not sell or share data with third parties.
         </p>
 
-        <h2 className="pt-4 text-xl font-semibold">Que dados guarda</h2>
+        <h2 className="pt-4 text-xl font-semibold">What data it stores</h2>
         <ul className="list-disc space-y-1 pl-6">
           <li>
-            As tarefas, as tags e o histórico de quando cada tag foi lida.
+            The tasks, the tags and the history of when each tag was scanned.
           </li>
           <li>
-            As definições da aplicação (horários, tópico de notificações).
+            The app settings (schedules, notification topic).
           </li>
           <li>
-            Se o Google Calendar for ligado: o email da conta Google e os tokens
-            de acesso, guardados cifrados.
+            If Google Calendar is connected: the Google account email and the
+            access tokens, stored encrypted.
           </li>
         </ul>
 
         <h2 className="pt-4 text-xl font-semibold">Google Calendar</h2>
         <p>
-          O Toque pede apenas acesso para criar e gerir um calendário próprio
-          chamado &ldquo;Toque&rdquo;. Não lê nem altera nenhum outro calendário
-          ou evento. Os dados obtidos das APIs Google são usados só para manter
-          esse calendário sincronizado com as tarefas, em conformidade com a
-          Google API Services User Data Policy, incluindo os requisitos de
-          utilização limitada.
+          Toque only asks for access to create and manage its own calendar
+          called &ldquo;Toque&rdquo;. It does not read or change any other
+          calendar or event. Data obtained from Google APIs is used only to
+          keep that calendar in sync with the tasks, in compliance with the
+          Google API Services User Data Policy, including the Limited Use
+          requirements.
         </p>
         <p>
-          Desligar o Google nas Definições apaga o calendário
-          &ldquo;Toque&rdquo;, revoga o acesso e remove os tokens guardados.
-        </p>
-
-        <h2 className="pt-4 text-xl font-semibold">Onde ficam os dados</h2>
-        <p>
-          Numa base de dados Postgres (Neon) na União Europeia, acedida pela
-          aplicação alojada no Vercel. As notificações são enviadas através do
-          serviço ntfy.sh.
+          Disconnecting Google in Settings deletes the &ldquo;Toque&rdquo;
+          calendar, revokes access and removes the stored tokens.
         </p>
 
-        <h2 className="pt-4 text-xl font-semibold">Contacto</h2>
+        <h2 className="pt-4 text-xl font-semibold">Where the data is kept</h2>
         <p>
-          Para qualquer questão, contacta o autor através do email de suporte
-          indicado no Google.
+          In a Postgres database (Neon) in the European Union, accessed by
+          the app hosted on Vercel. Notifications are sent through the ntfy.sh
+          service.
+        </p>
+
+        <h2 className="pt-4 text-xl font-semibold">Contact</h2>
+        <p>
+          For any question, contact the author through the support email
+          listed with Google.
         </p>
       </section>
     </main>

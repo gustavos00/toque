@@ -11,7 +11,7 @@ const databaseUrl = process.env.DATABASE_URL;
 // On Vercel the build runs this before `next build` (see vercel.json); never
 // fall back to a throwaway PGlite there.
 if (process.env.VERCEL && !databaseUrl) {
-  console.error("DATABASE_URL em falta: liga a base de dados Neon ao projeto (prefixo DATABASE).");
+  console.error("DATABASE_URL is missing: connect the Neon database to the project (prefix DATABASE).");
   process.exit(1);
 }
 
@@ -20,7 +20,7 @@ if (databaseUrl) {
   const { drizzle } = await import("drizzle-orm/neon-http");
   const { migrate } = await import("drizzle-orm/neon-http/migrator");
   await migrate(drizzle(neon(databaseUrl)), { migrationsFolder });
-  console.log("Migrações aplicadas (Neon).");
+  console.log("Migrations applied (Neon).");
 } else {
   const configuredDir =
     process.env.TOQUE_PGLITE_DIR || path.join(process.cwd(), ".data", "pglite");
@@ -32,5 +32,5 @@ if (databaseUrl) {
   const client = new PGlite(dataDir);
   await migrate(drizzle(client), { migrationsFolder });
   await client.close();
-  console.log(`Migrações aplicadas (PGlite em ${dataDir ?? "memória"}).`);
+  console.log(`Migrations applied (PGlite at ${dataDir ?? "memory"}).`);
 }

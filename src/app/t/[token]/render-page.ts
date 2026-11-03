@@ -23,13 +23,13 @@ function escapeHtml(value: string) {
 export function renderScanPage(
   result: ScanResult,
   status = 200,
-  link: { href: string; label: string } = { href: "/", label: "Abrir o Toque" },
+  link: { href: string; label: string } = { href: "/", label: "Open Toque" },
 ): Response {
   const { icon, color } = TONE_STYLES[result.tone];
   const title = escapeHtml(result.title);
   const message = escapeHtml(result.message);
   const html = `<!doctype html>
-<html lang="pt-PT">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">

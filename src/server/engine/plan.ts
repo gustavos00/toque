@@ -38,7 +38,7 @@ function applySnooze(
     expiresAt: null,
     payload: {
       ...latest.payload,
-      message: `Adiado até às ${getLocalTime(snoozedUntil)}. ${latest.payload.message}`,
+      message: `Snoozed until ${getLocalTime(snoozedUntil)}. ${latest.payload.message}`,
     },
   };
   return [...rows.filter((row) => row.dueAt.getTime() >= until), snoozeRow];

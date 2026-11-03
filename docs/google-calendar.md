@@ -1,109 +1,109 @@
-# Ligar o Toque ao Google Calendar
+# Connecting Toque to Google Calendar
 
-Com esta integração, o Toque cria um calendário próprio chamado **"Toque"** na sua conta Google e põe lá as tarefas (fim da máquina, dias do lixo, tarefas periódicas). Os eventos **não têm lembretes** — os avisos continuam a ser do ntfy — e são **apagados** quando a tarefa fica feita.
+With this integration, Toque creates its own calendar called **"Toque"** in your Google account and puts the tasks there (end of the machine, bin days, recurring tasks). The events **have no reminders** (alerts still come from ntfy) and are **deleted** when the task is done.
 
-O Toque só pede acesso aos calendários **que ele próprio cria** (`calendar.app.created`). Não consegue ler nem alterar os seus outros calendários.
+Toque only asks for access to calendars **that it creates itself** (`calendar.app.created`). It cannot read or change your other calendars.
 
-É gratuito. Tempo estimado: 20 minutos. Precisa do Toque já publicado (ver [deploy.md](deploy.md)).
+It is free. Estimated time: 20 minutes. You need Toque already deployed (see [deploy.md](deploy.md)).
 
-## 1. Criar o projeto no Google Cloud
+## 1. Create the Google Cloud project
 
-1. Abra o [Google Cloud Console](https://console.cloud.google.com/) com a conta Google onde quer o calendário.
-2. Se for a primeira vez, aceite os termos. **Não é preciso ativar faturação** nem o período experimental.
-3. No seletor de projetos (barra de cima) → **Novo projeto** → nome `Toque` → **Criar**. Confirme que o projeto `Toque` fica selecionado.
-4. Menu → **APIs e serviços → Biblioteca** → procure **Google Calendar API** → **Ativar**.
+1. Open the [Google Cloud Console](https://console.cloud.google.com/) with the Google account where you want the calendar.
+2. If it is your first time, accept the terms. **You don't need to enable billing** or the free trial.
+3. In the project selector (top bar) → **New project** → name `Toque` → **Create**. Confirm that the `Toque` project is selected.
+4. Menu → **APIs & Services → Library** → search for **Google Calendar API** → **Enable**.
 
-## 2. Ecrã de consentimento OAuth
+## 2. OAuth consent screen
 
-Menu → **APIs e serviços → Ecrã de consentimento OAuth** (na consola nova chama-se **Google Auth Platform**; carregue em **Começar**).
+Menu → **APIs & Services → OAuth consent screen** (in the new console it is called **Google Auth Platform**; click **Get started**).
 
-1. **Informações da app**
-   - Nome da app: `Toque`
-   - E-mail de apoio ao utilizador: o seu e-mail
-2. **Público-alvo**: **Externo**.
-3. **Informações de contacto** (contacto do programador): o seu e-mail.
-4. Aceite a política de dados de utilizador → **Criar**.
-5. **Acesso a dados** (ou *Âmbitos*) → **Adicionar ou remover âmbitos** e marque:
-   - `.../auth/calendar.app.created` — *Criar calendários secundários e gerir os respetivos eventos* (se não aparecer na lista, cole `https://www.googleapis.com/auth/calendar.app.created` em *Adicionar âmbitos manualmente*);
+1. **App information**
+   - App name: `Toque`
+   - User support email: your email
+2. **Audience**: **External**.
+3. **Contact information** (developer contact): your email.
+4. Accept the user data policy → **Create**.
+5. **Data Access** (or *Scopes*) → **Add or remove scopes** and tick:
+   - `.../auth/calendar.app.created`: *Make secondary Google calendars, and see, create, change, and delete events on them* (if it isn't in the list, paste `https://www.googleapis.com/auth/calendar.app.created` in *Manually add scopes*);
    - `openid`;
-   - `.../auth/userinfo.email` (aparece como `email`).
+   - `.../auth/userinfo.email` (shown as `email`).
 
-   **Atualizar** → **Guardar**.
+   **Update** → **Save**.
 
-### Publicar a app ("Em produção")
+### Publish the app ("In production")
 
-Em **Público-alvo** (ou no ecrã de consentimento), em *Estado da publicação*, carregue em **Publicar app** → **Confirmar**. O estado passa de *Em teste* para **Em produção**.
+Under **Audience** (or on the consent screen), in *Publishing status*, click **Publish app** → **Confirm**. The status changes from *Testing* to **In production**.
 
-**Porquê:** enquanto a app está *Em teste*, a Google **invalida o acesso ao fim de 7 dias** (o *refresh token* expira). O Toque deixaria de conseguir escrever no calendário todas as semanas e teria de voltar a ligar à mão.
+**Why:** while the app is *Testing*, Google **invalidates access after 7 days** (the *refresh token* expires). Toque would stop being able to write to the calendar every week and you would have to reconnect by hand.
 
-Publicar **não** torna nada público: só quem tiver o link e fizer login com a própria conta pode autorizar, e cada conta só dá acesso aos seus dados. Como é uma app pessoal e não verificada pela Google, aparece um aviso no passo 5 — é esperado. Não peça a verificação: não é preciso para uso próprio (o limite de 100 utilizadores de uma app não verificada chega perfeitamente).
+Publishing does **not** make anything public: only someone with the link who signs in with their own account can authorize, and each account only gives access to its own data. Since this is a personal app not verified by Google, a warning appears in step 5; that is expected. Don't ask for verification: it isn't needed for personal use (the 100-user limit of an unverified app is plenty).
 
-## 3. Criar o cliente OAuth
+## 3. Create the OAuth client
 
-Menu → **APIs e serviços → Credenciais** (ou **Google Auth Platform → Clientes**) → **Criar credenciais → ID de cliente OAuth**.
+Menu → **APIs & Services → Credentials** (or **Google Auth Platform → Clients**) → **Create credentials → OAuth client ID**.
 
-1. Tipo de aplicação: **Aplicação Web**.
-2. Nome: `Toque`.
-3. **URIs de redirecionamento autorizados** → **Adicionar URI**, um de cada vez, exatamente assim:
-   - `https://toque-two.vercel.app/api/google/callback` (troque pelo seu endereço se for outro);
-   - `http://localhost:3000/api/google/callback` (só para desenvolvimento).
+1. Application type: **Web application**.
+2. Name: `Toque`.
+3. **Authorized redirect URIs** → **Add URI**, one at a time, exactly like this:
+   - `https://toque-two.vercel.app/api/google/callback` (replace with your address if it's different);
+   - `http://localhost:3000/api/google/callback` (development only).
 
-   Se usar um domínio próprio, acrescente também `https://<o-seu-domínio>/api/google/callback`.
-4. *Origens JavaScript autorizadas*: deixe vazio.
-5. **Criar**. Aparece o **ID do cliente** (termina em `.apps.googleusercontent.com`) e o **Segredo do cliente**. Deixe a janela aberta para o passo seguinte — e **não cole o segredo em chats, e-mails ou no Git**.
+   If you use a custom domain, also add `https://<your-domain>/api/google/callback`.
+4. *Authorized JavaScript origins*: leave empty.
+5. **Create**. The **Client ID** (ends in `.apps.googleusercontent.com`) and the **Client secret** appear. Leave the window open for the next step, and **don't paste the secret into chats, emails or Git**.
 
-## 4. Guardar as variáveis no Vercel
+## 4. Store the variables on Vercel
 
-Na pasta do projeto (com `npx vercel link` já feito — ver [deploy.md](deploy.md)):
+In the project folder (with `npx vercel link` already done; see [deploy.md](deploy.md)):
 
 ```bash
 bash scripts/setup-vercel-env.sh --google
 ```
 
-O script pergunta o ID do cliente e o segredo (o segredo não aparece no ecrã enquanto escreve) e envia-os diretamente para o Vercel. Cria:
+The script asks for the client ID and the secret (the secret isn't shown on screen as you type) and sends them straight to Vercel. It creates:
 
-| Variável | O que é |
+| Variable | What it is |
 | --- | --- |
-| `GOOGLE_CLIENT_ID` | O ID do cliente OAuth. |
-| `GOOGLE_CLIENT_SECRET` | O segredo do cliente OAuth. |
-| `TOQUE_ENCRYPTION_KEY` | Gerada pelo script (`openssl rand -base64 32`). Cifra o acesso à conta Google guardado na base de dados. |
+| `GOOGLE_CLIENT_ID` | The OAuth client ID. |
+| `GOOGLE_CLIENT_SECRET` | The OAuth client secret. |
+| `TOQUE_ENCRYPTION_KEY` | Generated by the script (`openssl rand -base64 32`). Encrypts the Google account access stored in the database. |
 
-Se `TOQUE_ENCRYPTION_KEY` já existir, o script mantém-na (a não ser que responda `s`): uma chave nova torna ilegível o acesso guardado e obriga a ligar de novo ao Google.
+If `TOQUE_ENCRYPTION_KEY` already exists, the script keeps it (unless you answer `y`): a new key makes the stored access unreadable and forces you to connect to Google again.
 
 <details>
-<summary>Sem o script (à mão)</summary>
+<summary>Without the script (by hand)</summary>
 
-Vercel → projeto → **Settings → Environment Variables**, ambiente **Production**, marque **Sensitive**:
+Vercel → project → **Settings → Environment Variables**, **Production** environment, tick **Sensitive**:
 
-- `GOOGLE_CLIENT_ID` = ID do cliente
-- `GOOGLE_CLIENT_SECRET` = segredo do cliente
-- `TOQUE_ENCRYPTION_KEY` = o resultado de `openssl rand -base64 32`
+- `GOOGLE_CLIENT_ID` = client ID
+- `GOOGLE_CLIENT_SECRET` = client secret
+- `TOQUE_ENCRYPTION_KEY` = the output of `openssl rand -base64 32`
 
 </details>
 
-Para desenvolvimento local, ponha as mesmas três variáveis em `.env.local` (nunca no Git).
+For local development, put the same three variables in your local environment file (never in Git).
 
-## 5. Redeploy e ligar
+## 5. Redeploy and connect
 
-1. Vercel → **Deployments → ⋯ → Redeploy** (as variáveis novas só contam a partir do deploy seguinte).
-2. No Toque: **Definições → Ligar ao Google**.
-3. Escolha a conta Google.
-4. Aparece **"A Google não validou esta app"**. É normal (passo 2): toque em **Avançado** (ou *Avançadas*) → **Ir para Toque (não seguro)** — o texto exato varia; em inglês é *Advanced → Go to Toque (unsafe)*.
-5. Confirme o acesso (*criar calendários secundários e gerir os respetivos eventos*) → **Continuar**.
-6. Volta às Definições, que mostram a conta ligada. No Google Calendar aparece o calendário **Toque** (no iPhone, em Calendário → *Calendários*, ative-o se não aparecer).
+1. Vercel → **Deployments → ⋯ → Redeploy** (new variables only count from the next deploy).
+2. In Toque: **Settings → Connect to Google**.
+3. Choose the Google account.
+4. **"Google hasn't verified this app"** appears. That's normal (step 2): tap **Advanced** → **Go to Toque (unsafe)**; the exact text varies.
+5. Confirm the access (*make secondary calendars and manage their events*) → **Continue**.
+6. You return to Settings, which shows the connected account. In Google Calendar the **Toque** calendar appears (on the iPhone, in Calendar → *Calendars*, turn it on if it doesn't appear).
 
-## Desligar ou mudar de conta
+## Disconnecting or changing account
 
-- No Toque: **Definições → Desligar do Google**.
-- Para revogar também do lado da Google: [myaccount.google.com/permissions](https://myaccount.google.com/permissions) → **Toque** → **Remover acesso**.
-- O calendário "Toque" pode ser apagado à mão no Google Calendar, se já não o quiser.
+- In Toque: **Settings → Disconnect from Google**.
+- To also revoke on Google's side: [myaccount.google.com/permissions](https://myaccount.google.com/permissions) → **Toque** → **Remove access**.
+- The "Toque" calendar can be deleted by hand in Google Calendar if you no longer want it.
 
-## Problemas comuns
+## Common problems
 
-| Erro | Causa | O que fazer |
+| Error | Cause | What to do |
 | --- | --- | --- |
-| `redirect_uri_mismatch` | O URI no passo 3 não é igual ao endereço da app | Confirme `https://`, o domínio exato e o caminho `/api/google/callback`, sem `/` no fim. As alterações podem demorar uns minutos. |
-| `access_denied` / *app em teste* | A app ainda está *Em teste* e a conta não está na lista de testadores | Publique a app (passo 2). |
-| Deixou de funcionar ao fim de 7 dias | A app ficou *Em teste* | Publique a app e volte a **Ligar ao Google**. |
-| `invalid_client` | ID ou segredo errados | Corra de novo `bash scripts/setup-vercel-env.sh --google` e faça *Redeploy*. |
-| "Ligar ao Google" não aparece ou dá erro de configuração | Faltam variáveis ou não fez *Redeploy* | Passos 4 e 5. |
+| `redirect_uri_mismatch` | The URI in step 3 isn't the same as the app's address | Confirm `https://`, the exact domain and the path `/api/google/callback`, with no trailing `/`. Changes can take a few minutes. |
+| `access_denied` / *app in testing* | The app is still *Testing* and the account isn't on the test users list | Publish the app (step 2). |
+| It stopped working after 7 days | The app stayed in *Testing* | Publish the app and **Connect to Google** again. |
+| `invalid_client` | Wrong ID or secret | Run `bash scripts/setup-vercel-env.sh --google` again and *Redeploy*. |
+| "Connect to Google" doesn't appear or gives a configuration error | Missing variables or no *Redeploy* | Steps 4 and 5. |

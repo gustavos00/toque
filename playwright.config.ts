@@ -29,7 +29,7 @@ export default defineConfig({
   projects: [
     {
       name: "iphone",
-      use: { ...devices["iPhone 15"], locale: "pt-PT", timezoneId: "Europe/Lisbon" },
+      use: { ...devices["iPhone 15"], locale: "en-GB", timezoneId: "Europe/Lisbon" },
     },
   ],
   webServer: [

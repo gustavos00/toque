@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
   if (!parsed.success || !isPasswordCorrect(parsed.data.password)) {
     await new Promise((resolve) => setTimeout(resolve, FAILED_LOGIN_DELAY_MS));
-    return Response.json({ error: "Palavra-passe incorreta" }, { status: 401 });
+    return Response.json({ error: "Incorrect password" }, { status: 401 });
   }
 
   const token = await createSessionToken();

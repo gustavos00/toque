@@ -1,78 +1,78 @@
-# Gravar e colar as tags NFC
+# Writing and sticking the NFC tags
 
-Cada tarefa do Toque tem uma tag com um endereço único, do género:
+Each Toque task has a tag with a unique address, like:
 
 ```
 https://toque.example.pt/t/AbC123…
 ```
 
-Encostar o iPhone à tag abre esse endereço e regista o toque. **Não é preciso sessão iniciada**: o código no fim do endereço (o *token*) é a credencial. Trate-o como uma chave — quem o tiver pode registar toques nessa tarefa (e só nessa).
+Holding the iPhone against the tag opens that address and logs the tap. **No signed-in session is needed**: the code at the end of the address (the *token*) is the credential. Treat it like a key: whoever has it can log taps on that task (and only that one).
 
-## 1. Que tags comprar
+## 1. Which tags to buy
 
-| Tag | Memória útil | Notas |
+| Tag | Usable memory | Notes |
 | --- | --- | --- |
-| **NTAG213** | 144 bytes | Chega e sobra para um URL do Toque. A mais barata. |
-| NTAG215 | 504 bytes | Também serve. |
-| NTAG216 | 888 bytes | Também serve; só faz sentido se quiser guardar mais registos. |
+| **NTAG213** | 144 bytes | Plenty for a Toque URL. The cheapest. |
+| NTAG215 | 504 bytes | Also works. |
+| NTAG216 | 888 bytes | Also works; only makes sense if you want to store more records. |
 
-Todas funcionam com o iPhone (XS ou mais recente lê tags em segundo plano).
+All of them work with the iPhone (XS or newer reads tags in the background).
 
-**Superfícies metálicas** (máquina de lavar, frigorífico, porta metálica): uma tag normal colada diretamente no metal **não é lida** — o metal anula a antena. Use uma de:
+**Metal surfaces** (washing machine, fridge, metal door): a normal tag stuck directly on metal **is not read**, because the metal cancels the antenna. Use one of:
 
-- tags **on-metal / anti-metal** (têm uma camada de ferrite incorporada; procure "NTAG213 anti-metal");
-- uma tag normal sobre uma **folha de ferrite** (vende-se em rolos/autocolantes "ferrite sheet NFC").
+- **on-metal / anti-metal** tags (they have a built-in ferrite layer; search for "NTAG213 anti-metal");
+- a normal tag on top of a **ferrite sheet** (sold as rolls/stickers, "ferrite sheet NFC").
 
-Em plástico, madeira ou vidro qualquer tag NTAG21x serve. Autocolantes redondos de 25–30 mm são um bom tamanho.
+On plastic, wood or glass any NTAG21x tag will do. Round stickers of 25–30 mm are a good size.
 
-## 2. Obter o endereço da tag
+## 2. Getting the tag's address
 
-No Toque, crie a tarefa e abra **a sua tag** (no ecrã da tarefa). Copie o endereço completo `https://…/t/<token>`. Uma tarefa pode ter **mais do que uma tag**, cada uma com o seu token e a sua ação. A máquina da roupa usa duas: uma tag **"inicia"** (na máquina, começa o temporizador) e uma tag **"estendida"** (no estendal, marca a roupa como estendida). O formato do endereço é o mesmo — só muda o token, por isso grave cada endereço na tag certa.
+In Toque, create the task and open **its tag** (on the task screen). Copy the full address `https://…/t/<token>`. A task can have **more than one tag**, each with its own token and its own action. The washing machine uses two: a **"Start"** tag (on the machine, starts the timer) and a **"Complete"** tag (on the drying rack, marks the laundry as hung out). The address format is the same; only the token changes, so write each address on the right tag.
 
-Use sempre o domínio definitivo (ver [deploy.md](deploy.md)) — se mudar de domínio terá de regravar todas as tags.
+Always use the final domain (see [deploy.md](deploy.md)); if you change domain you will have to rewrite all the tags.
 
-## 3. Gravar com a app NFC Tools (grátis)
+## 3. Writing with the NFC Tools app (free)
 
-1. Instale **NFC Tools** (wakdev) na App Store.
-2. Abra a app → **Escrever** (*Write*).
-3. **Adicionar um registo** → **URL / URI**.
-4. Cole o endereço completo da tag (confirme que começa por `https://`) e toque em **OK**.
-5. Toque em **Escrever / X bytes** e encoste o topo traseiro do iPhone à tag até aparecer o visto.
-6. Teste: bloqueie e desbloqueie o iPhone, encoste-o à tag — deve aparecer uma notificação "Abrir no Safari" (ver secção 5).
+1. Install **NFC Tools** (wakdev) from the App Store.
+2. Open the app → **Write**.
+3. **Add a record** → **URL / URI**.
+4. Paste the tag's full address (make sure it starts with `https://`) and tap **OK**.
+5. Tap **Write / X bytes** and hold the top back of the iPhone against the tag until the tick appears.
+6. Test: lock and unlock the iPhone, hold it against the tag; an "Open in Safari" notification should appear (see section 5).
 
-Grave **um único registo URL** por tag. Registos extra (texto, contactos) podem impedir o iPhone de abrir o link em segundo plano.
+Write **a single URL record** per tag. Extra records (text, contacts) may stop the iPhone from opening the link in the background.
 
-## 4. Bloquear a tag (opcional — irreversível)
+## 4. Locking the tag (optional, irreversible)
 
-Em NFC Tools → **Outros** → **Bloquear tag** (*Lock tag*) a tag passa a ser só de leitura, para que ninguém a regrave com outro endereço.
+In NFC Tools → **Other** → **Lock tag** the tag becomes read-only, so nobody can rewrite it with another address.
 
-> ⚠️ **É irreversível.** Uma tag bloqueada nunca mais pode ser gravada. Se depois regenerar o token da tarefa ou mudar de domínio, terá de deitar a tag fora e usar uma nova. Recomendação: só bloqueie depois de usar o Toque umas semanas com o domínio definitivo.
+> ⚠️ **It is irreversible.** A locked tag can never be written again. If you later regenerate the task's token or change domain, you will have to throw the tag away and use a new one. Recommendation: only lock it after using Toque for a few weeks with the final domain.
 
-Não use a opção de "palavra-passe" do NFC Tools: o iPhone deixa de conseguir ler a tag em segundo plano em alguns modelos.
+Don't use NFC Tools' "password" option: on some models the iPhone can no longer read the tag in the background.
 
-## 5. Como o iPhone abre o link
+## 5. How the iPhone opens the link
 
-- Com o iPhone **desbloqueado** e o ecrã ligado, encoste o topo traseiro do telemóvel à tag.
-- Com a app Toque instalada, o iOS abre-a diretamente (Universal Link `https://…/t/<token>`) num pequeno painel "tarefa · Feito / Adiar". O toque só fica registado quando escolhe **Feito**.
-- Sem a app, abre-se uma página mínima "Abre a app Toque" no Safari.
-- Não funciona com o ecrã desligado, com a câmara aberta, durante uma chamada, nem no Centro de Controlo/Wallet.
+- With the iPhone **unlocked** and the screen on, hold the top back of the phone against the tag.
+- With the Toque app installed, iOS opens it directly (Universal Link `https://…/t/<token>`) in a small "task · Done / Snooze" panel. The tap is only logged when you choose **Done**.
+- Without the app, a minimal "Open the Toque app" page opens in Safari.
+- It doesn't work with the screen off, with the camera open, during a call, or in Control Centre/Wallet.
 
-## 6. Gravar e ler tags na própria app
+## 6. Writing and reading tags in the app itself
 
-No ecrã **Associar tag** da app, **Gravar tag** escreve o URL `https://…/t/<token>` da tag (um único registo NDEF) e **Ler tag** mostra o que a tag já contém. Não é preciso nenhuma app externa.
+On the app's **NFC tag** screen, **Write tag** writes the tag's `https://…/t/<token>` URL (a single NDEF record) and **Read tag** shows what the tag already contains. No external app is needed.
 
-## 7. Onde colar
+## 7. Where to stick them
 
-| Tarefa | Onde | Porquê |
+| Task | Where | Why |
 | --- | --- | --- |
-| Lixo (*até confirmar*) | Por dentro da **porta de casa**, à altura da mão, ou no caixote | Toca-se ao sair com o saco — confirma que foi despejado. |
-| Máquina da roupa — tag **"inicia"** (*temporizador*) | **Lateral ou topo** da máquina, longe do painel e da porta (tag anti-metal!) | Toca-se ao carregar em "iniciar"; o Toque avisa quando acabar. Tocar outra vez enquanto decorre só mostra quanto falta. |
-| Máquina da roupa — tag **"estendida"** | No **estendal** (ou no cesto da roupa) | Toca-se depois de estender: marca a roupa como tratada e pára os lembretes de "roupa esquecida". |
-| Tarefas recorrentes | Junto ao objeto (filtro, plantas, caixa de areia…) | Toca-se ao terminar a tarefa. |
+| Bins (*until done*) | Inside the **front door**, at hand height, or on the bin | You tap it on the way out with the bag; it confirms it was taken out. |
+| Washing machine, **"Start"** tag (*timer*) | **Side or top** of the machine, away from the panel and the door (anti-metal tag!) | You tap it when you press "start"; Toque notifies you when it ends. Tapping again while it runs only shows how much time is left. |
+| Washing machine, **"Complete"** tag | On the **drying rack** (or the laundry basket) | You tap it after hanging the laundry out: it marks the laundry as handled and stops the "forgotten laundry" reminders. |
+| Recurring tasks | Next to the object (filter, plants, litter box…) | You tap it when you finish the task. |
 
-Dicas:
+Tips:
 
-- Teste a leitura no sítio **antes** de colar definitivamente — paredes com tubos ou chapas metálicas também atrapalham.
-- Limpe a superfície com álcool antes de colar.
-- Uma pequena etiqueta ou ícone por cima ajuda as visitas a perceber para que serve.
-- Evite sítios húmidos ou muito quentes (atrás da máquina, ao pé do forno).
+- Test the reading in place **before** sticking it down for good; walls with pipes or metal sheets also get in the way.
+- Clean the surface with alcohol before sticking.
+- A small label or icon on top helps visitors understand what it is for.
+- Avoid damp or very hot places (behind the machine, next to the oven).

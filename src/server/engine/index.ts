@@ -1,4 +1,4 @@
-// Toque engine: DB-driven scheduler. No in-memory timers — every change (scan, "feito",
+// Toque engine: DB-driven scheduler. No in-memory timers — every change (scan, "done",
 // snooze, config edit, tick) recomputes the task's desired outbox rows and reconciles them
 // with the `notifications` table; /api/tick then sends what is due.
 //
@@ -193,7 +193,7 @@ async function applyOutcome(
 /**
  * NFC scan of a tag linked to `taskId`. The scan event itself is logged by the route.
  * `action` is the tag's role: "start" or "complete" (e.g. the clothes-rack tag,
- * which behaves like the "Feito"/"Já tratei" button).
+ * which behaves like the "Done"/"Handled" button).
  */
 export async function handleScan(input: {
   taskId: string;
@@ -205,11 +205,11 @@ export async function handleScan(input: {
   const task = await getTaskById(db, input.taskId);
   if (!task)
     return buildInfoResult(
-      "Tag sem tarefa",
-      "A tarefa desta tag já não existe.",
+      "Tag without a task",
+      "This tag's task no longer exists.",
     );
   if (!task.enabled)
-    return buildInfoResult(task.name, "Esta tarefa está desativada.");
+    return buildInfoResult(task.name, "This task is disabled.");
   const state = await getTaskState(db, task.id);
   const handler = getKindHandler(task);
   const outcome =
@@ -219,27 +219,27 @@ export async function handleScan(input: {
   return applyOutcome(db, task, state, outcome, input.tagId, input.now);
 }
 
-/** "Feito" from a notification (or the app): completes / acknowledges / confirms the task. */
+/** "Done" from a notification (or the app): completes / acknowledges / confirms the task. */
 export async function handleTaskDone(
   taskId: string,
   now: Date,
 ): Promise<ScanResult> {
   const db = await getDb();
   const task = await getTaskById(db, taskId);
-  if (!task) return buildInfoResult("Tarefa", "A tarefa já não existe.");
+  if (!task) return buildInfoResult("Task", "The task no longer exists.");
   const state = await getTaskState(db, task.id);
   const outcome = getKindHandler(task).handleDone(task, state, now);
   return applyOutcome(db, task, state, outcome, null, now);
 }
 
-/** "Adiar" from a notification: holds the task's notifications for `settings.defaults.snoozeMinutes`. */
+/** "Snooze" from a notification: holds the task's notifications for `settings.defaults.snoozeMinutes`. */
 export async function handleTaskSnooze(
   taskId: string,
   now: Date,
 ): Promise<ScanResult> {
   const db = await getDb();
   const task = await getTaskById(db, taskId);
-  if (!task) return buildInfoResult("Tarefa", "A tarefa já não existe.");
+  if (!task) return buildInfoResult("Task", "The task no longer exists.");
   const settings = await getSettings(db);
   const until = addMinutes(now, settings.defaults.snoozeMinutes);
   const state = await getTaskState(db, task.id);
@@ -248,7 +248,7 @@ export async function handleTaskSnooze(
     events: [{ type: "snoozed", data: { until: until.toISOString() } }],
     result: {
       title: task.name,
-      message: `Adiado. Volto a lembrar às ${getLocalTime(until)}.`,
+      message: `Snoozed. I'll remind you again at ${getLocalTime(until)}.`,
       tone: "info",
     },
   };
@@ -258,7 +258,7 @@ export async function handleTaskSnooze(
 /**
  * Entry point for POST /api/actions/<action>?task=&occ=&exp=&sig= (ntfy buttons).
  * Verifies the HMAC signature and expiry, checks the link's occurrence is still the task's
- * current one (otherwise an info "Este aviso já não está ativo." and nothing changes),
+ * current one (otherwise an info "This alert is no longer active." and nothing changes),
  * then runs "done" or "snooze".
  */
 export async function handleNotificationAction(
@@ -285,7 +285,7 @@ export async function handleNotificationAction(
   if (!task)
     return {
       ok: true,
-      result: buildInfoResult("Tarefa", "A tarefa já não existe."),
+      result: buildInfoResult("Task", "The task no longer exists."),
     };
   // Button from an older alert (yesterday's rubbish, a previous timer cycle…): change nothing.
   const current = getKindHandler(task).getCurrentOccurrence(
@@ -296,7 +296,7 @@ export async function handleNotificationAction(
   if (current !== verified.occurrence) {
     return {
       ok: true,
-      result: buildInfoResult(task.name, "Este aviso já não está ativo."),
+      result: buildInfoResult(task.name, "This alert is no longer active."),
     };
   }
   const result =
