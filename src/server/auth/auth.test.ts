@@ -146,3 +146,78 @@ describe("bearer sessions", () => {
     }
   });
 });
+
+describe("portal sessions", () => {
+  const url = "http://localhost/api/dashboard";
+  const ownerId = "da95f154-e696-4bfc-b272-2f0b256c9fc6";
+
+  function stubPortal(userId: string | null) {
+    vi.stubEnv("TOQUE_PORTAL_SUPABASE_URL", "https://portal.supabase.co/");
+    vi.stubEnv("TOQUE_PORTAL_SUPABASE_KEY", "sb_publishable_test");
+    vi.stubEnv("TOQUE_PORTAL_OWNER_ID", ownerId);
+    const fetchMock = vi.fn(async () =>
+      userId === null
+        ? new Response("{}", { status: 401 })
+        : Response.json({ id: userId }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    return fetchMock;
+  }
+
+  function buildBearerRequest(token: string) {
+    return new NextRequest(url, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("accepts the owner's Supabase token and asks Supabase about it", async () => {
+    const fetchMock = stubPortal(ownerId);
+
+    expect(await requireSession(buildBearerRequest("supabase-jwt"))).toBeNull();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://portal.supabase.co/auth/v1/user",
+      expect.objectContaining({
+        headers: {
+          apikey: "sb_publishable_test",
+          Authorization: "Bearer supabase-jwt",
+        },
+      }),
+    );
+  });
+
+  it("rejects another account, a token Supabase refuses, and a failed call", async () => {
+    stubPortal("someone-else");
+    expect(await hasSession(buildBearerRequest("supabase-jwt"))).toBe(false);
+
+    stubPortal(null);
+    expect(await hasSession(buildBearerRequest("supabase-jwt"))).toBe(false);
+
+    stubPortal(ownerId).mockRejectedValueOnce(new Error("offline"));
+    expect(await hasSession(buildBearerRequest("supabase-jwt"))).toBe(false);
+  });
+
+  it("is off without its settings and on the public demo", async () => {
+    const fetchMock = stubPortal(ownerId);
+    vi.stubEnv("TOQUE_PORTAL_OWNER_ID", "");
+    expect(await hasSession(buildBearerRequest("supabase-jwt"))).toBe(false);
+
+    vi.stubEnv("TOQUE_PORTAL_OWNER_ID", ownerId);
+    vi.stubEnv("NEXT_PUBLIC_TOQUE_DEMO", "1");
+    expect(await hasSession(buildBearerRequest("supabase-jwt"))).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not call Supabase for Toque's own tokens", async () => {
+    const fetchMock = stubPortal(ownerId);
+
+    expect(
+      await hasSession(buildBearerRequest(await createSessionToken())),
+    ).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

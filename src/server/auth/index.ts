@@ -13,6 +13,7 @@ import type { NextRequest } from "next/server";
 import { getDb } from "@/server/db";
 import { maybeResetDemoData } from "@/server/db/demo";
 import { isDemoMode } from "@/shared/demo";
+import { isPortalTokenValid } from "./portal";
 import { isSessionTokenValid, SESSION_COOKIE_NAME } from "./session";
 
 export {
@@ -34,13 +35,16 @@ function readBearerToken(request: NextRequest): string | undefined {
 
 /**
  * Is the request carrying a valid session, as the cookie (web) or as an
- * `Authorization: Bearer` header (native app)? Both hold the same JWT.
+ * `Authorization: Bearer` header (native app)? Both hold the same JWT. A
+ * Bearer token that is not one is tried as the portal owner's Supabase token.
  */
 export async function hasSession(request: NextRequest): Promise<boolean> {
-  const token =
-    request.cookies.get(SESSION_COOKIE_NAME)?.value ??
-    readBearerToken(request);
-  return isSessionTokenValid(token);
+  const bearer = readBearerToken(request);
+  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value ?? bearer;
+
+  if (await isSessionTokenValid(token)) return true;
+
+  return isPortalTokenValid(bearer);
 }
 
 /**

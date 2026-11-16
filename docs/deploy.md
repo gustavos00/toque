@@ -85,6 +85,7 @@ In **Settings → Environment Variables** (tick *Sensitive* for the secrets):
 | `TOQUE_PUBLIC_URL` | Only with a custom domain, e.g. `https://toque.example.pt` (no trailing `/`). Without it, tags use the address you opened the app from and notifications use the Vercel production domain. |
 | `NTFY_TOPIC` | Usually not needed: the topic is chosen in the app's **Settings** (which take priority). See [ntfy.md](ntfy.md). |
 | `NTFY_BASE_URL`, `NTFY_TOKEN` | Only for your own ntfy server or one with authentication. |
+| `TOQUE_PORTAL_SUPABASE_URL`, `TOQUE_PORTAL_SUPABASE_KEY`, `TOQUE_PORTAL_OWNER_ID` | Only to read Toque from a Supabase-backed portal without a second login: the project URL, its publishable key and your user id there. A Bearer access token of that user then counts as a session. All three, or none. |
 
 Don't set `TOQUE_PGLITE_DIR` or `NEXT_PUBLIC_TOQUE_MOCKS` on Vercel; they are only for development and tests.
 
